@@ -1,5 +1,6 @@
 {
   "expo": {
+    "scheme": "nav",
     "name": "Navigation",
     "slug": "Navigation",
     "version": "1.0.0",
@@ -16,14 +17,34 @@
       "supportsTablet": true
     },
     "android": {
+      "permissions": [
+        "ACCESS_FINE_LOCATION"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.bericks.Navigation"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "MAPBOX_ACCESS_TOKEN": "pk.eyJ1IjoiYmVyaWNrcyIsImEiOiJjbWVkMmxhdDIwNXdyMmxzNTA3ZnprMHk3In0.hE8cQigI9JFbb9YBHnOsHQ",
+      "router": {},
+      "eas": {
+        "projectId": "e215f1fb-d717-4bb8-9815-5c2483a5c43d"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsDownloadToken":"sk.eyJ1IjoiYmVyaWNrcyIsImEiOiJjbWV2ZGZ5dWcwYjVwMmtxeHRuOTE3dWxsIn0.d7nD5CM2rsNLYE3YjcnkKg"
+        }
+      ]
+    ]
   }
 }
