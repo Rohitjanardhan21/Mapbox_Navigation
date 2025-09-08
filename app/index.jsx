@@ -18,6 +18,12 @@ import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 
+import { landmarks } from "../constants/landmarks";
+
+
+
+
+
 MapboxGL.setAccessToken(Constants.expoConfig.extra?.MAPBOX_ACCESS_TOKEN || '');
 
 const Home = () => {
@@ -38,17 +44,7 @@ const Home = () => {
   const cameraRef = useRef(null);
   const slideAnim = useRef(new Animated.Value(-100)).current;
 
-  // Sample campus landmarks data
-  const campusLandmarks = [
-    { id: '1', name: 'Main Academic Building', coordinates: [77.4379, 12.8631], type: 'academic' },
-    { id: '2', name: 'Central Library', coordinates: [77.4385, 12.8638], type: 'library' },
-    { id: '3', name: 'Student Center & Cafeteria', coordinates: [77.4372, 12.8625], type: 'food' },
-    { id: '4', name: 'Sports Complex & Gymnasium', coordinates: [77.4390, 12.8645], type: 'sports' },
-    { id: '5', name: 'Science & Research Block', coordinates: [77.4365, 12.8620], type: 'academic' },
-    { id: '6', name: 'Administration Building', coordinates: [77.4380, 12.8640], type: 'admin' },
-    { id: '7', name: 'Computer Science Department', coordinates: [77.4370, 12.8635], type: 'academic' },
-    { id: '8', name: 'Campus Bookstore', coordinates: [77.4378, 12.8633], type: 'shopping' },
-  ];
+
 
   // Icon mapping for different location types
   const iconMap = {
@@ -294,7 +290,7 @@ const Home = () => {
     setSearchQuery(query);
     
     if (query.length > 0) {
-      const filtered = campusLandmarks.filter(landmark => 
+      const filtered = landmarks.filter(landmark => 
         landmark.name.toLowerCase().includes(query.toLowerCase())
       );
       setSearchResults(filtered);
@@ -356,7 +352,7 @@ const Home = () => {
         />
         
         {/* Add markers for all campus landmarks */}
-        {campusLandmarks.map(landmark => (
+        {landmarks.map(landmark => (
           <MapboxGL.PointAnnotation
             key={landmark.id}
             id={landmark.id}
