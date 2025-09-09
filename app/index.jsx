@@ -18,12 +18,6 @@ import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 
-import { landmarks } from "../constants/landmarks";
-
-
-
-
-
 MapboxGL.setAccessToken(Constants.expoConfig.extra?.MAPBOX_ACCESS_TOKEN || '');
 
 const Home = () => {
@@ -44,7 +38,17 @@ const Home = () => {
   const cameraRef = useRef(null);
   const slideAnim = useRef(new Animated.Value(-100)).current;
 
-
+  // Sample campus landmarks data
+  const campusLandmarks = [
+    { id: '1', name: 'Main Academic Building', coordinates: [77.4379, 12.8631], type: 'academic' },
+    { id: '2', name: 'Central Library', coordinates: [77.4385, 12.8638], type: 'library' },
+    { id: '3', name: 'Student Center & Cafeteria', coordinates: [77.4372, 12.8625], type: 'food' },
+    { id: '4', name: 'Sports Complex & Gymnasium', coordinates: [77.4390, 12.8645], type: 'sports' },
+    { id: '5', name: 'Science & Research Block', coordinates: [77.4365, 12.8620], type: 'academic' },
+    { id: '6', name: 'Administration Building', coordinates: [77.4380, 12.8640], type: 'admin' },
+    { id: '7', name: 'Computer Science Department', coordinates: [77.4370, 12.8635], type: 'academic' },
+    { id: '8', name: 'Campus Bookstore', coordinates: [77.4378, 12.8633], type: 'shopping' },
+  ];
 
   // Icon mapping for different location types
   const iconMap = {
@@ -290,7 +294,7 @@ const Home = () => {
     setSearchQuery(query);
     
     if (query.length > 0) {
-      const filtered = landmarks.filter(landmark => 
+      const filtered = campusLandmarks.filter(landmark => 
         landmark.name.toLowerCase().includes(query.toLowerCase())
       );
       setSearchResults(filtered);
@@ -352,7 +356,7 @@ const Home = () => {
         />
         
         {/* Add markers for all campus landmarks */}
-        {landmarks.map(landmark => (
+        {campusLandmarks.map(landmark => (
           <MapboxGL.PointAnnotation
             key={landmark.id}
             id={landmark.id}
@@ -475,44 +479,46 @@ const Home = () => {
       </TouchableOpacity>
 
       {/* Navigation Panel (Bottom Sheet) */}
-      <Animated.View style={[styles.navigationPanel, { transform: [{ translateY: slideAnim }] }]}>
-        <View style={styles.navigationHeader}>
-          <Text style={styles.navigationTitle}>Navigation Active</Text>
-          <TouchableOpacity onPress={stopNavigation}>
-            <Ionicons name="close" size={24} color="#000" />
-          </TouchableOpacity>
-        </View>
-        
-        {selectedDestination && (
-          <View style={styles.destinationInfo}>
-            <Ionicons 
-              name={selectedDestination.id === 'custom' ? 'flag' : (iconMap[selectedDestination.type] || iconMap.default)} 
-              size={24} 
-              color="#4285F4" 
-            />
-            <Text style={styles.destinationName}>{selectedDestination.name}</Text>
+      {selectedDestination && (
+        <Animated.View style={[styles.navigationPanel, { transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.navigationHeader}>
+            <Text style={styles.navigationTitle}>Navigation Active</Text>
+            <TouchableOpacity onPress={stopNavigation}>
+              <Ionicons name="close" size={24} color="#000" />
+            </TouchableOpacity>
           </View>
-        )}
-        
-        {routeInfo && (
-          <View style={styles.routeInfo}>
-            <View style={styles.routeInfoItem}>
-              <Ionicons name="time" size={20} color="#5f5f5f" />
-              <Text style={styles.routeInfoText}>{travelTime} min</Text>
+          
+          {selectedDestination && (
+            <View style={styles.destinationInfo}>
+              <Ionicons 
+                name={selectedDestination.id === 'custom' ? 'flag' : (iconMap[selectedDestination.type] || iconMap.default)} 
+                size={24} 
+                color="#4285F4" 
+              />
+              <Text style={styles.destinationName}>{selectedDestination.name}</Text>
             </View>
-            <View style={styles.routeInfoItem}>
-              <Ionicons name="walk" size={20} color="#5f5f5f" />
-              <Text style={styles.routeInfoText}>{distance} km</Text>
+          )}
+          
+          {routeInfo && (
+            <View style={styles.routeInfo}>
+              <View style={styles.routeInfoItem}>
+                <Ionicons name="time" size={20} color="#5f5f5f" />
+                <Text style={styles.routeInfoText}>{travelTime} min</Text>
+              </View>
+              <View style={styles.routeInfoItem}>
+                <Ionicons name="walk" size={20} color="#5f5f5f" />
+                <Text style={styles.routeInfoText}>{distance} km</Text>
+              </View>
             </View>
+          )}
+          
+          <View style={styles.navigationControls}>
+            <TouchableOpacity style={styles.stopButton} onPress={stopNavigation}>
+              <Text style={styles.stopButtonText}>Stop Navigation</Text>
+            </TouchableOpacity>
           </View>
-        )}
-        
-        <View style={styles.navigationControls}>
-          <TouchableOpacity style={styles.stopButton} onPress={stopNavigation}>
-            <Text style={styles.stopButtonText}>Stop Navigation</Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
+        </Animated.View>
+      )}
 
       {/* Destination Options Modal */}
       <Modal
