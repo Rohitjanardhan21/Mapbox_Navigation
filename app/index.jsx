@@ -1,20 +1,14 @@
 import { useEffect, useState, useRef } from 'react';
 import { 
   View, 
-  ActivityIndicator, 
-  TextInput, 
-  FlatList, 
-  Text, 
-  TouchableOpacity, 
+  ActivityIndicator,
   Keyboard,
-  StyleSheet,
   Alert,
-  Animated,
-  Easing,
-  Modal
+  Text
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
 import Constants from 'expo-constants';
+import * as Font from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 
@@ -28,19 +22,7 @@ MapboxGL.setAccessToken(Constants.expoConfig.extra?.MAPBOX_ACCESS_TOKEN || '');
 
 const Home = () => {
   const [ready, setReady] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [showResults, setShowResults] = useState(false);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [userLocation, setUserLocation] = useState(null);
-  const [locationPermission, setLocationPermission] = useState(false);
-  const [selectedDestination, setSelectedDestination] = useState(null);
-  const [routeInfo, setRouteInfo] = useState(null);
-  const [isNavigating, setIsNavigating] = useState(false);
-  const [travelTime, setTravelTime] = useState(null);
-  const [distance, setDistance] = useState(null);
-  const [showDestinationOptions, setShowDestinationOptions] = useState(false);
-  const [tappedCoordinate, setTappedCoordinate] = useState(null);
+  const [fontsLoaded, setFontsLoaded] = useState(false);
   const cameraRef = useRef(null);
   const slideAnim = useRef(new Animated.Value(-100)).current;
 
@@ -59,204 +41,78 @@ const Home = () => {
 
   useEffect(() => {
     (async () => {
-      // Request location permissions
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission Denied',
-          'Allow location access to use navigation features',
-          [{ text: 'OK' }]
-        );
-        setLocationPermission(false);
-      } else {
-        setLocationPermission(true);
-        
-        // Start watching position updates
-        await Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.BestForNavigation,
-            distanceInterval: 5,
-            timeInterval: 1000,
-          },
-          (location) => {
-            const { latitude, longitude } = location.coords;
-            setUserLocation([longitude, latitude]);
-            
-            // Update camera position if navigating
-            if (isNavigating && cameraRef.current) {
-              cameraRef.current.setCamera({
-                centerCoordinate: [longitude, latitude],
-                zoomLevel: 17,
-                animationMode: 'flyTo',
-                animationDuration: 1000,
-              });
-            }
-          }
-        );
-      }
-      
       await MapboxGL.requestAndroidLocationPermissions();
       setReady(true);
     })();
-  }, [isNavigating]);
+  }, []);
 
-  // Calculate route between two points
-  const calculateRoute = async (origin, destination) => {
-    try {
-      // Use Mapbox Directions API
-      const response = await fetch(
-        `https://api.mapbox.com/directions/v5/mapbox/walking/${origin[0]},${origin[1]};${destination[0]},${destination[1]}?geometries=geojson&access_token=${Constants.expoConfig.extra?.MAPBOX_ACCESS_TOKEN}`
-      );
-      
-      const data = await response.json();
-      
-      if (data.routes && data.routes[0]) {
-        const route = data.routes[0];
-        setDistance((route.distance / 1000).toFixed(1));
-        setTravelTime(Math.ceil(route.duration / 60));
-        
-        return {
-          distance: route.distance / 1000,
-          duration: route.duration / 60,
-          coordinates: route.geometry.coordinates
-        };
-      }
-    } catch (error) {
-      console.error('Error calculating route with Mapbox API:', error);
-      
-      // Fallback to straight-line distance calculation
-      const R = 6371;
-      const dLat = (destination[1] - origin[1]) * Math.PI / 180;
-      const dLon = (destination[0] - origin[0]) * Math.PI / 180;
-      const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(origin[1] * Math.PI / 180) * Math.cos(destination[1] * Math.PI / 180) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const calculatedDistance = R * c;
-      const calculatedTime = (calculatedDistance / 5) * 60;
-      
-      setDistance(calculatedDistance.toFixed(1));
-      setTravelTime(Math.ceil(calculatedTime));
-      
-      return {
-        distance: calculatedDistance,
-        duration: calculatedTime,
-        coordinates: [origin, destination]
-      };
-    }
-  };
-
-  // Function to get current location
-  const goToCurrentLocation = async () => {
-    try {
-      if (!locationPermission) {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert(
-            'Permission Denied',
-            'Allow location access to use this feature',
-            [{ text: 'OK' }]
-          );
-          return;
-        }
-        setLocationPermission(true);
-      }
-
-      let location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.BestForNavigation,
+  // Update camera position during navigation
+  useEffect(() => {
+    if (isNavigating && userLocation && cameraRef.current) {
+      cameraRef.current.setCamera({
+        centerCoordinate: userLocation,
+        zoomLevel: DEFAULT_CAMERA_SETTINGS.navigationZoomLevel,
+        animationMode: 'flyTo',
+        animationDuration: 1000,
       });
+    }
+  }, [userLocation, isNavigating]);
 
-      const { latitude, longitude } = location.coords;
-      setUserLocation([longitude, latitude]);
-
-      if (cameraRef.current) {
-        cameraRef.current.setCamera({
-          centerCoordinate: [longitude, latitude],
-          zoomLevel: 16,
-          animationDuration: 1000,
-        });
-      }
-    } catch (error) {
-      console.error('Error getting location:', error);
-      Alert.alert(
-        'Location Error',
-        'Unable to get your current location',
-        [{ text: 'OK' }]
-      );
+  const handleGoToCurrentLocation = async () => {
+    const location = await goToCurrentLocation();
+    if (location && cameraRef.current) {
+      cameraRef.current.setCamera({
+        centerCoordinate: [location.longitude, location.latitude],
+        zoomLevel: 16,
+        animationDuration: 1000,
+      });
     }
   };
 
-  // Start navigation to a destination
-  const startNavigation = async (destination) => {
+  const handleSearchFocus = () => {
+    setIsSearchFocused(true);
+  };
+
+  const handleSearchBlur = () => {
+    if (!searchQuery) {
+      setIsSearchFocused(false);
+    }
+  };
+
+  const handleClearSearch = () => {
+    clearSearch();
+    Keyboard.dismiss();
+  };
+
+  const handleLandmarkPress = (landmark) => {
+    console.log('handleLandmarkPress called with:', landmark);
     if (!userLocation) {
-      Alert.alert(
-        'Location Required',
-        'Please enable location services to start navigation',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Location Required', 'Please wait for your location to be detected');
       return;
     }
     
-    setSelectedDestination(destination);
-    setIsNavigating(true);
-    
-    // Calculate route
-    const route = await calculateRoute(userLocation, destination.coordinates);
-    setRouteInfo(route);
-    
-    // Show navigation panel
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: 500,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: true,
-    }).start();
+    try {
+      handleSelectResult(landmark, cameraRef, () => {
+        console.log('Starting navigation from landmark press');
+        return startNavigation(userLocation, landmark); // FIXED ORDER
+      });
+    } catch (error) {
+      console.error('Error in handleLandmarkPress:', error);
+    }
   };
 
-  // Stop navigation
-  const stopNavigation = () => {
-    setIsNavigating(false);
-    setSelectedDestination(null);
-    setRouteInfo(null);
+  const handleCreateCustomDestination = () => {
+    if (!userLocation) {
+      Alert.alert('Location Required', 'Please wait for your location to be detected');
+      return;
+    }
     
-    // Hide navigation panel
-    Animated.timing(slideAnim, {
-      toValue: -100,
-      duration: 500,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: true,
-    }).start();
+    createCustomDestination((destination) => startNavigation(userLocation, destination)); // FIXED ORDER
   };
 
-  // Set a custom destination by tapping on the map
-  const handleMapPress = (event) => {
-    const coordinate = event.geometry.coordinates;
-    setTappedCoordinate(coordinate);
-    setShowDestinationOptions(true);
-  };
-
-  // Create a custom destination at the tapped location
-  const createCustomDestination = () => {
-    const customDestination = {
-      id: 'custom',
-      name: 'Custom Destination',
-      coordinates: tappedCoordinate,
-      type: 'default'
-    };
-    
-    setSelectedDestination(customDestination);
+  const handleSearchLocation = () => {
     setShowDestinationOptions(false);
-    
-    // Ask if user wants to navigate to this destination
-    Alert.alert(
-      'Custom Destination',
-      'Do you want to navigate to this location?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Start Navigation', onPress: () => startNavigation(customDestination) }
-      ]
-    );
+    setIsSearchFocused(true);
   };
 
   // Set destination from search results
@@ -405,7 +261,9 @@ const Home = () => {
               type: 'Feature',
               geometry: {
                 type: 'LineString',
-                coordinates: [userLocation, selectedDestination.coordinates],
+                coordinates: routeInfo && routeInfo.coordinates && routeInfo.coordinates.length > 0 
+                  ? routeInfo.coordinates 
+                  : [userLocation, selectedDestination.coordinates],
               },
             }}
           >
@@ -421,40 +279,52 @@ const Home = () => {
         )}
       </MapboxGL.MapView>
 
-      {/* Search Bar - Google Maps Style */}
-      <View style={[styles.searchContainer, isSearchFocused && styles.searchContainerFocused]}>
-        <Ionicons name="search" size={20} color="#5f5f5f" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search campus..."
-          placeholderTextColor="#8e8e93"
-          value={searchQuery}
-          onChangeText={handleSearch}
-          onFocus={() => setIsSearchFocused(true)}
-          onBlur={() => !searchQuery && setIsSearchFocused(false)}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={clearSearch}>
-            <Ionicons name="close-circle" size={20} color="#8e8e93" />
-          </TouchableOpacity>
-        )}
-      </View>
+      {/* Search Bar */}
+      <SearchBar 
+        searchQuery={searchQuery}
+        onSearch={handleSearch}
+        onClear={handleClearSearch}
+        isSearchFocused={isSearchFocused}
+        onFocus={handleSearchFocus}
+        onBlur={handleSearchBlur}
+      />
 
-      {/* Search Results List */}
-      {showResults && (
-        <View style={styles.resultsContainer}>
-          <FlatList
-            data={searchResults}
-            renderItem={renderResultItem}
-            keyExtractor={item => item.id}
-            keyboardShouldPersistTaps="always"
-            ListEmptyComponent={
-              <View style={styles.noResults}>
-                <Ionicons name="search" size={40} color="#cccccc" />
-                <Text style={styles.noResultsText}>No places found</Text>
-              </View>
-            }
-          />
+      {/* Search Results */}
+      <SearchResults 
+        searchResults={searchResults}
+        showResults={showResults}
+        onSelectResult={handleSearchResultSelect}
+        onStartNavigation={(item) => {
+          if (!userLocation) {
+            Alert.alert('Location Required', 'Please wait for your location to be detected');
+            return;
+          }
+          startNavigation(userLocation, item); // FIXED ORDER
+        }}
+      />
+
+      {/* Floating Buttons */}
+      <FloatingButtons 
+        onGoToCurrentLocation={handleGoToCurrentLocation}
+        onSetDestination={() => setShowDestinationOptions(true)}
+      />
+
+      {/* Navigation Panel - Only shown when navigating */}
+      {isNavigating && (
+        <NavigationPanel 
+          slideAnim={slideAnim}
+          selectedDestination={selectedDestination}
+          travelTime={travelTime || (routeInfo && routeInfo.duration)}
+          distance={distance || (routeInfo && routeInfo.distance)}
+          onStopNavigation={stopNavigation}
+        />
+      )}
+
+      {/* Loading Overlay */}
+      {isCalculatingRoute && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#4285F4" />
+          <Text style={styles.loadingText}>Calculating route...</Text>
         </View>
       )}
 
@@ -515,319 +385,14 @@ const Home = () => {
       </Animated.View>
 
       {/* Destination Options Modal */}
-      <Modal
+      <DestinationModal 
         visible={showDestinationOptions}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowDestinationOptions(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Set Destination</Text>
-            
-            <TouchableOpacity 
-              style={styles.modalOption}
-              onPress={createCustomDestination}
-            >
-              <Ionicons name="flag" size={24} color="#4285F4" />
-              <Text style={styles.modalOptionText}>Use Current Map Location</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.modalOption}
-              onPress={() => {
-                setShowDestinationOptions(false);
-                setIsSearchFocused(true);
-              }}
-            >
-              <Ionicons name="search" size={24} color="#4285F4" />
-              <Text style={styles.modalOptionText}>Search for a Location</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.modalCancel}
-              onPress={() => setShowDestinationOptions(false)}
-            >
-              <Text style={styles.modalCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowDestinationOptions(false)}
+        onCreateCustomDestination={handleCreateCustomDestination}
+        onSearchLocation={handleSearchLocation}
+      />
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  map: {
-    flex: 1,
-  },
-  searchContainer: {
-    position: 'absolute',
-    top: 50,
-    left: 15,
-    right: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    zIndex: 2,
-  },
-  searchContainerFocused: {
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#000',
-    padding: 0,
-  },
-  resultsContainer: {
-    position: 'absolute',
-    top: 110,
-    left: 15,
-    right: 15,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    maxHeight: 300,
-    zIndex: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  resultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  resultIcon: {
-    marginRight: 15,
-  },
-  resultTextContainer: {
-    flex: 1,
-  },
-  resultTitle: {
-    fontSize: 16,
-    color: '#000',
-    marginBottom: 2,
-  },
-  resultSubtitle: {
-    fontSize: 14,
-    color: '#8e8e93',
-  },
-  noResults: {
-    padding: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  noResultsText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#8e8e93',
-  },
-  marker: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#4285F4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
-  },
-  destinationMarker: {
-    backgroundColor: '#34A853',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-  },
-  customDestinationMarker: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#FBBC05',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
-  },
-  userLocationMarker: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#4285F4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
-  },
-  userLocationPulse: {
-    position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#4285F4',
-    opacity: 0.3,
-  },
-  currentLocationButton: {
-    position: 'absolute',
-    bottom: 100,
-    right: 15,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  setDestinationButton: {
-    position: 'absolute',
-    bottom: 160,
-    right: 15,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#4285F4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  navigationPanel: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    zIndex: 3,
-  },
-  navigationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  navigationTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  destinationInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  destinationName: {
-    fontSize: 16,
-    marginLeft: 10,
-    color: '#000',
-  },
-  routeInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-  },
-  routeInfoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  routeInfoText: {
-    marginLeft: 5,
-    fontSize: 16,
-    color: '#5f5f5f',
-  },
-  navigationControls: {
-    alignItems: 'center',
-  },
-  stopButton: {
-    backgroundColor: '#EA4335',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  stopButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  modalOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  modalOptionText: {
-    fontSize: 16,
-    marginLeft: 15,
-  },
-  modalCancel: {
-    padding: 15,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  modalCancelText: {
-    fontSize: 16,
-    color: '#EA4335',
-    fontWeight: 'bold',
-  },
-});
 
 export default Home;
