@@ -1,88 +1,51 @@
+// components/MapMarkers.jsx
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import MapboxGL from '@rnmapbox/maps';
-import { iconMap } from '../utils/constants';
-import { styles } from '../styles/components';
+import { View, Text, StyleSheet } from 'react-native';
 
-// Ensure Ionicons is properly loaded
-import * as Font from 'expo-font';
-
-export const MapMarkers = ({ 
-  landmarks, 
-  userLocation, 
-  selectedDestination, 
-  onLandmarkPress 
-}) => {
+const MapMarkers = ({ landmarks, userLocation, selectedDestination, onLandmarkPress }) => {
   return (
     <>
-      {/* Add markers for all campus landmarks */}
-      {landmarks.map(landmark => (
-        <MapboxGL.PointAnnotation
-          key={landmark.id}
-          id={landmark.id}
-          coordinate={landmark.coordinates}
-          onSelected={() => onLandmarkPress(landmark)}
-        >
-          <View style={[
-            markerStyles.markerIconContainer,
-            selectedDestination && selectedDestination.id === landmark.id ? 
-              markerStyles.selectedMarker : null
-          ]}>
-            <Ionicons 
-              name={iconMap[landmark.type] || 'location'} 
-              size={16} 
-              color={selectedDestination && selectedDestination.id === landmark.id ? '#FFFFFF' : '#4285F4'}
-              style={{ width: 16, height: 16 }} 
-            />
-          </View>
-          
-          <MapboxGL.Callout title={landmark.name}>
-            <View style={markerStyles.calloutContainer}>
-              <Text style={markerStyles.calloutTitle}>{landmark.name}</Text>
-              <Text style={markerStyles.calloutSubtitle}>{landmark.type}</Text>
-              <View style={markerStyles.calloutActions}>
-                <TouchableOpacity 
-                  style={markerStyles.calloutButton}
-                  onPress={() => {
-                    console.log('Directions button pressed for:', landmark.name);
-                    onLandmarkPress(landmark);
-                  }}
-                >
-                  <Ionicons name="navigate" size={14} color="#4285F4" style={{ width: 14, height: 14 }} />
-                  <Text style={markerStyles.calloutButtonText}>Directions</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={markerStyles.calloutButton}>
-                  <Ionicons name="star" size={14} color="#4285F4" style={{ width: 14, height: 14 }} />
-                  <Text style={markerStyles.calloutButtonText}>Save</Text>
-                </TouchableOpacity>
+      {/* User location is handled by MapboxGL.UserLocation in the main component */}
+      
+      {/* Landmark markers */}
+      {landmarks.map(landmark => {
+        const isSelected = selectedDestination && selectedDestination.id === landmark.id;
+        return (
+          <MapboxGL.PointAnnotation
+            key={landmark.id}
+            id={landmark.id.toString()}
+            coordinate={landmark.coordinates}
+            onPress={() => onLandmarkPress(landmark)}
+          >
+            <View style={styles.markerContainer}>
+              <View style={[
+                styles.marker,
+                isSelected && styles.selectedMarker
+              ]}>
+                <Text style={styles.markerText}>
+                  {landmark.name.charAt(0)}
+                </Text>
               </View>
             </View>
-          </MapboxGL.Callout>
-        </MapboxGL.PointAnnotation>
-      ))}
+          </MapboxGL.PointAnnotation>
+        );
+      })}
       
-      {/* Show user location if available */}
-      {userLocation && (
+      {/* Selected destination marker (for custom locations)
+        This marker will only be rendered if a destination is selected
+        AND that destination is NOT one of the predefined landmarks.
+      */}
+      {selectedDestination && !landmarks.some(l => l.id === selectedDestination.id) && (
         <MapboxGL.PointAnnotation
-          id="userLocation"
-          coordinate={userLocation}
-        >
-          <View style={styles.userLocationMarker}>
-            <View style={styles.userLocationPulse} />
-            <Ionicons name="person" size={16} color="white" style={{ width: 16, height: 16 }} />
-          </View>
-        </MapboxGL.PointAnnotation>
-      )}
-      
-      {/* Show custom destination marker if set */}
-      {selectedDestination && selectedDestination.id === 'custom' && (
-        <MapboxGL.PointAnnotation
-          id="customDestination"
+          id="selected-destination"
           coordinate={selectedDestination.coordinates}
+          title="Destination"
         >
-          <View style={markerStyles.customDestinationMarker}>
-            <Ionicons name="flag" size={16} color="white" style={{ width: 16, height: 16 }} />
+          <View style={styles.markerContainer}>
+            <View style={styles.destinationMarker}>
+              <Text style={styles.destinationMarkerText}>📍</Text>
+            </View>
           </View>
         </MapboxGL.PointAnnotation>
       )}
@@ -90,78 +53,39 @@ export const MapMarkers = ({
   );
 };
 
-const markerStyles = StyleSheet.create({
-  markerIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
+const styles = StyleSheet.create({
+  markerContainer: {
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    justifyContent: 'center',
+  },
+  marker: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#4285F4',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: 'white',
   },
   selectedMarker: {
-    backgroundColor: '#4285F4',
-    zIndex: 1,
+    backgroundColor: '#34A853',
+    transform: [{ scale: 1.2 }],
   },
-  customDestinationMarker: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#EA4335',
+  destinationMarker: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
-  calloutContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 12,
-    width: 180,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+  destinationMarkerText: {
+    fontSize: 30,
   },
-  calloutTitle: {
-    fontSize: 16,
+  markerText: {
+    color: 'white',
     fontWeight: 'bold',
-    color: '#202124',
-    marginBottom: 4,
-  },
-  calloutSubtitle: {
     fontSize: 14,
-    color: '#5f6368',
-    marginBottom: 8,
-  },
-  calloutActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E8EAED',
-    paddingTop: 8,
-  },
-  calloutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 4,
-  },
-  calloutButtonText: {
-    fontSize: 12,
-    color: '#4285F4',
-    marginLeft: 4,
-    fontWeight: '500',
   },
 });
+
+export default MapMarkers;

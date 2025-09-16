@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { iconMap } from '../utils/constants';
 import { styles } from '../styles/components';
 
-export const DestinationModal = ({ visible, landmark, onClose, onStartNavigation }) => {
+// Correction: Renamed the component to PlaceDetailsModal for clarity
+const PlaceDetailsModal = ({ visible, landmark, onClose, onStartNavigation }) => {
   if (!landmark) return null;
 
   // Mock data for Google Maps-like features
@@ -114,3 +115,5 @@ export const DestinationModal = ({ visible, landmark, onClose, onStartNavigation
     </Modal>
   );
 };
+
+export default PlaceDetailsModal;
