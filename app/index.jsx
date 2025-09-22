@@ -10,47 +10,126 @@ import MapboxGL from '@rnmapbox/maps';
 import Constants from 'expo-constants';
 import * as Font from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
 
 import { landmarks } from "../constants/landmarks";
+import { DEFAULT_CAMERA_SETTINGS } from '../utils/constants';
 
+// Hooks - Named imports (with curly braces)
+import { useLocation } from '../hooks/useLocation';
+import { useSearch } from '../hooks/useSearch';
+import { useNavigation } from '../hooks/useNavigation';
 
+// Components - Default imports (without curly braces)
+import SearchBar from '../components/SearchBar';
+import SearchResults from '../components/SearchResults';
+import NavigationPanel from '../components/NavigationPanel';
+import DestinationOptionsModal from '../components/DestinationOptionsModal';
+import PlaceDetailsModal from '../components/PlaceDetailsModal';
+import MapMarkers from '../components/MapMarkers';
+import FloatingButtons from '../components/FloatingButtons';
 
+// Styles
+import { styles } from '../styles/main';
 
-
-MapboxGL.setAccessToken(Constants.expoConfig.extra?.MAPBOX_ACCESS_TOKEN || '');
+// Set Mapbox access token - USE YOUR ACTUAL TOKEN
+MapboxGL.setAccessToken('pk.eyJ1IjoiYmVyaWNrcyIsImEiOiJjbWVkMmxhdDIwNXdyMmxzNTA3ZnprMHk3In0.hE8cQigI9JFbb9YBHnOsHQ');
 
 const Home = () => {
   const [ready, setReady] = useState(false);
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [showPlaceDetails, setShowPlaceDetails] = useState(false);
   const cameraRef = useRef(null);
-  const slideAnim = useRef(new Animated.Value(-100)).current;
+  
+  // Debug imports
+  useEffect(() => {
+    console.log('Component imports:', {
+      SearchBar: typeof SearchBar,
+      SearchResults: typeof SearchResults,
+      NavigationPanel: typeof NavigationPanel,
+      MapMarkers: typeof MapMarkers,
+      FloatingButtons: typeof FloatingButtons,
+      useLocation: typeof useLocation,
+      useSearch: typeof useSearch,
+      useNavigation: typeof useNavigation
+    });
+  }, []);
 
+  // Load fonts
+  useEffect(() => {
+    async function loadFonts() {
+      try {
+        await Font.loadAsync({
+          ...Ionicons.font
+        });
+        console.log('Fonts loaded successfully');
+        setFontsLoaded(true);
+      } catch (error) {
+        console.error('Error loading fonts:', error);
+      }
+    }
+    
+    loadFonts();
+  }, []);
 
-
-  // Icon mapping for different location types
-  const iconMap = {
-    academic: 'school',
-    library: 'library',
-    food: 'restaurant',
-    sports: 'basketball',
-    admin: 'business',
-    shopping: 'cart',
-    default: 'location'
-  };
+  // Custom hooks
+  const { userLocation, locationPermission, goToCurrentLocation, setUserLocation } = useLocation();
+  const { 
+    searchQuery, 
+    searchResults, 
+    showResults, 
+    isSearchFocused, 
+    handleSearch, 
+    clearSearch, 
+    handleSelectResult,
+    setIsSearchFocused 
+  } = useSearch();
+  
+  const { 
+    selectedDestination, 
+    routeInfo, 
+    isNavigating, 
+    travelTime, 
+    distance, 
+    showDestinationOptions, 
+    slideAnim, 
+    startNavigation, 
+    stopNavigation, 
+    handleMapPress, 
+    createCustomDestination,
+    handleSelectResult: handleNavigationSelectResult,
+    setShowDestinationOptions,
+    setSelectedDestination,
+    isCalculatingRoute,
+    calculateRouteInfo
+  } = useNavigation();
 
   useEffect(() => {
     (async () => {
-      await MapboxGL.requestAndroidLocationPermissions();
-      setReady(true);
+      // Request location permissions
+      try {
+        // For Android
+        await MapboxGL.requestAndroidLocationPermissions();
+        setReady(true);
+      } catch (error) {
+        console.error('Error requesting permissions:', error);
+        setReady(true); // Still set ready to true to show the map
+      }
     })();
   }, []);
+
+  // Calculate route info whenever a destination is selected
+  useEffect(() => {
+    if (selectedDestination && userLocation && !isNavigating) {
+      console.log('Calculating route info for selected destination:', selectedDestination.name);
+      calculateRouteInfo(userLocation, selectedDestination);
+    }
+  }, [selectedDestination, userLocation, isNavigating, calculateRouteInfo]);
 
   // Update camera position during navigation
   useEffect(() => {
     if (isNavigating && userLocation && cameraRef.current) {
       cameraRef.current.setCamera({
-        centerCoordinate: userLocation,
+        centerCoordinate: [userLocation.longitude, userLocation.latitude],
         zoomLevel: DEFAULT_CAMERA_SETTINGS.navigationZoomLevel,
         animationMode: 'flyTo',
         animationDuration: 1000,
@@ -84,30 +163,114 @@ const Home = () => {
     Keyboard.dismiss();
   };
 
+  // Helper function to extract coordinates in [longitude, latitude] format
+  const getCoordinates = (location) => {
+    if (!location) return null;
+    
+    if (Array.isArray(location)) {
+      return location.length === 2 ? location : null;
+    }
+    
+    if (location.coordinates && Array.isArray(location.coordinates)) {
+      return location.coordinates;
+    }
+    
+    if (location.longitude !== undefined && location.latitude !== undefined) {
+      return [location.longitude, location.latitude];
+    }
+    
+    return null;
+  };
+
+  // Quick navigation handler
+  const handleQuickNavigation = (item) => {
+    console.log('Quick navigation started for:', item);
+    const userCoords = getCoordinates(userLocation);
+    if (!userCoords) {
+      Alert.alert('Location Required', 'Please wait for your location to be detected');
+      return;
+    }
+    
+    const resultCoords = getCoordinates(item);
+    if (!resultCoords) {
+      Alert.alert('Error', 'This location has invalid coordinates');
+      return;
+    }
+    
+    // Update search query with the selected item
+    handleSelectResult(item);
+    
+    // Start navigation
+    startNavigation(userCoords, {
+      ...item,
+      coordinates: resultCoords
+    });
+  };
+
   const handleLandmarkPress = (landmark) => {
     console.log('handleLandmarkPress called with:', landmark);
-    if (!userLocation) {
+    const userCoords = getCoordinates(userLocation);
+    if (!userCoords) {
       Alert.alert('Location Required', 'Please wait for your location to be detected');
       return;
     }
     
     try {
-      handleSelectResult(landmark, cameraRef, () => {
-        console.log('Starting navigation from landmark press');
-        return startNavigation(userLocation, landmark); // FIXED ORDER
-      });
+      // Ensure landmark has coordinates in the correct format
+      const landmarkCoords = getCoordinates(landmark.location || landmark);
+      if (!landmarkCoords) {
+        Alert.alert('Error', 'This location does not have valid coordinates');
+        return;
+      }
+      
+      // Update landmark with proper coordinates
+      const landmarkWithCoords = {
+        ...landmark,
+        coordinates: landmarkCoords
+      };
+      
+      // Set as selected destination (this will trigger route calculation)
+      setSelectedDestination(landmarkWithCoords);
+      
+      // Move camera to landmark
+      if (cameraRef.current) {
+        cameraRef.current.setCamera({
+          centerCoordinate: landmarkCoords,
+          zoomLevel: 16,
+          animationDuration: 1000,
+        });
+      }
+      
+      // Show the PlaceDetailsModal
+      setShowPlaceDetails(true);
+      
     } catch (error) {
       console.error('Error in handleLandmarkPress:', error);
+      Alert.alert('Error', 'Failed to select landmark');
     }
   };
 
   const handleCreateCustomDestination = () => {
-    if (!userLocation) {
+    const userCoords = getCoordinates(userLocation);
+    if (!userCoords) {
       Alert.alert('Location Required', 'Please wait for your location to be detected');
       return;
     }
     
-    createCustomDestination((destination) => startNavigation(userLocation, destination)); // FIXED ORDER
+    createCustomDestination((destination) => {
+      const destCoords = getCoordinates(destination);
+      if (!destCoords) {
+        Alert.alert('Error', 'Invalid destination coordinates');
+        return;
+      }
+      
+      const destinationWithCoords = {
+        ...destination,
+        coordinates: destCoords
+      };
+      
+      startNavigation(userCoords, destinationWithCoords);
+    });
   };
 
   const handleSearchLocation = () => {
@@ -115,81 +278,82 @@ const Home = () => {
     setIsSearchFocused(true);
   };
 
-  // Set destination from search results
-  const handleSelectResult = (result) => {
-    setSearchQuery(result.name);
-    setShowResults(false);
-    setIsSearchFocused(false);
-    Keyboard.dismiss();
-    
-    if (cameraRef.current) {
-      cameraRef.current.setCamera({
-        centerCoordinate: result.coordinates,
-        zoomLevel: 17,
-        animationDuration: 1000,
-      });
+  const handleSearchResultSelect = (result) => {
+    console.log('handleSearchResultSelect called with:', result);
+    const userCoords = getCoordinates(userLocation);
+    if (!userCoords) {
+      Alert.alert('Location Required', 'Please wait for your location to be detected');
+      return;
     }
     
-    // Set as destination and ask to navigate
-    setSelectedDestination(result);
-    Alert.alert(
-      'Navigate to ' + result.name,
-      'Do you want to start navigation to this location?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Start Navigation', onPress: () => startNavigation(result) }
-      ]
-    );
+    try {
+      // Ensure result has coordinates in the correct format
+      const resultCoords = getCoordinates(result.location || result);
+      if (!resultCoords) {
+        Alert.alert('Error', 'This location does not have valid coordinates');
+        return;
+      }
+      
+      // Update result with proper coordinates
+      const resultWithCoords = {
+        ...result,
+        coordinates: resultCoords
+      };
+      
+      // Update search query with the selected result
+      handleSelectResult(resultWithCoords);
+      
+      // Set as selected destination (this will trigger route calculation)
+      setSelectedDestination(resultWithCoords);
+      
+      // Move camera to selected destination
+      if (cameraRef.current) {
+        cameraRef.current.setCamera({
+          centerCoordinate: resultCoords,
+          zoomLevel: 16,
+          animationDuration: 1000,
+        });
+      }
+      
+      // Show the PlaceDetailsModal after selecting a search result
+      setShowPlaceDetails(true);
+      
+    } catch (error) {
+      console.error('Error in handleSearchResultSelect:', error);
+      Alert.alert('Error', 'Failed to select location');
+    }
   };
 
-  const handleSearch = (query) => {
-    setSearchQuery(query);
+  // Add this function to handle starting navigation
+  const handleStartNavigation = async () => {
+    if (!selectedDestination) {
+      Alert.alert('Error', 'No destination selected');
+      return;
+    }
     
-    if (query.length > 0) {
-      const filtered = landmarks.filter(landmark => 
-        landmark.name.toLowerCase().includes(query.toLowerCase())
-      );
-      setSearchResults(filtered);
-      setShowResults(true);
+    const userCoords = getCoordinates(userLocation);
+    if (!userCoords) {
+      Alert.alert('Location Required', 'Please wait for your location to be detected');
+      return;
+    }
+    
+    console.log('Starting navigation to:', selectedDestination);
+    const success = await startNavigation(userCoords, selectedDestination);
+    
+    if (success) {
+      console.log('Navigation started successfully');
+      // Hide the modal after navigation starts
+      setShowPlaceDetails(false);
     } else {
-      setSearchResults([]);
-      setShowResults(false);
+      Alert.log('Navigation Error', 'Could not start navigation. Please try again.');
     }
   };
 
-  const clearSearch = () => {
-    setSearchQuery('');
-    setSearchResults([]);
-    setShowResults(false);
-    setIsSearchFocused(false);
-    Keyboard.dismiss();
-  };
-
-  const renderResultItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.resultItem} 
-      onPress={() => handleSelectResult(item)}
-    >
-      <Ionicons 
-        name={iconMap[item.type] || iconMap.default} 
-        size={20} 
-        color="#5f5f5f" 
-        style={styles.resultIcon}
-      />
-      <View style={styles.resultTextContainer}>
-        <Text style={styles.resultTitle}>{item.name}</Text>
-        <Text style={styles.resultSubtitle}>Campus Location</Text>
-      </View>
-      <TouchableOpacity onPress={() => startNavigation(item)}>
-        <Ionicons name="navigate" size={24} color="#4285F4" />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
-
-  if (!ready) {
+  if (!ready || !fontsLoaded) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#4285F4" />
+        <Text style={{marginTop: 10}}>Loading map...</Text>
       </View>
     );
   }
@@ -200,108 +364,84 @@ const Home = () => {
       <MapboxGL.MapView 
         style={styles.map}
         onPress={handleMapPress}
+        logoEnabled={false}
       >
         <MapboxGL.Camera 
           ref={cameraRef}
-          zoomLevel={15} 
-          centerCoordinate={[77.4379, 12.8631]} 
+          defaultSettings={{
+            zoomLevel: DEFAULT_CAMERA_SETTINGS.zoomLevel, 
+            centerCoordinate: DEFAULT_CAMERA_SETTINGS.centerCoordinate
+          }}
         />
         
-        {/* Add markers for all campus landmarks */}
-        {landmarks.map(landmark => (
-          <MapboxGL.PointAnnotation
-            key={landmark.id}
-            id={landmark.id}
-            coordinate={landmark.coordinates}
-            onSelected={() => handleSelectResult(landmark)}
-          >
-            <View style={[
-              styles.marker, 
-              selectedDestination && selectedDestination.id === landmark.id && styles.destinationMarker
-            ]}>
-              <Ionicons 
-                name={iconMap[landmark.type] || iconMap.default} 
-                size={16} 
-                color="white" 
-              />
-            </View>
-          </MapboxGL.PointAnnotation>
-        ))}
-        
-        {/* Show user location if available */}
+        {/* User location - REMOVED onUpdate prop */}
         {userLocation && (
-          <MapboxGL.PointAnnotation
-            id="userLocation"
-            coordinate={userLocation}
-          >
-            <View style={styles.userLocationMarker}>
-              <View style={styles.userLocationPulse} />
-              <Ionicons name="person" size={16} color="white" />
-            </View>
-          </MapboxGL.PointAnnotation>
+          <MapboxGL.UserLocation 
+            visible={true}
+          />
         )}
         
-        {/* Show custom destination marker if set */}
-        {selectedDestination && selectedDestination.id === 'custom' && (
-          <MapboxGL.PointAnnotation
-            id="customDestination"
-            coordinate={selectedDestination.coordinates}
-          >
-            <View style={styles.customDestinationMarker}>
-              <Ionicons name="flag" size={16} color="white" />
-            </View>
-          </MapboxGL.PointAnnotation>
-        )}
+        <MapMarkers 
+          landmarks={landmarks}
+          userLocation={userLocation}
+          selectedDestination={selectedDestination}
+          onLandmarkPress={handleLandmarkPress}
+        />
         
-        {/* Draw route line if navigating */}
-        {isNavigating && userLocation && selectedDestination && (
-          <MapboxGL.ShapeSource
-            id="routeSource"
-            shape={{
+        {/* CORRECTED: Draw route line without unmounting the component */}
+        <MapboxGL.ShapeSource
+          id="routeSource"
+          // Conditionally provide the shape
+          shape={
+            isNavigating && userLocation && selectedDestination && routeInfo ?
+            {
               type: 'Feature',
               geometry: {
                 type: 'LineString',
-                coordinates: routeInfo && routeInfo.coordinates && routeInfo.coordinates.length > 0 
+                coordinates: routeInfo.coordinates && routeInfo.coordinates.length > 0 
                   ? routeInfo.coordinates 
-                  : [userLocation, selectedDestination.coordinates],
+                  : [getCoordinates(userLocation), getCoordinates(selectedDestination)],
               },
+            }
+            :
+            null // If not navigating, don't provide a shape
+          }
+        >
+          <MapboxGL.LineLayer
+            id="routeLine"
+            style={{
+              lineColor: '#4285F4',
+              lineWidth: 5,
+              lineOpacity: 0.7,
             }}
-          >
-            <MapboxGL.LineLayer
-              id="routeLine"
-              style={{
-                lineColor: '#4285F4',
-                lineWidth: 5,
-                lineOpacity: 0.7,
-              }}
-            />
-          </MapboxGL.ShapeSource>
-        )}
+          />
+        </MapboxGL.ShapeSource>
+
       </MapboxGL.MapView>
 
-      {/* Search Bar */}
-      <SearchBar 
-        searchQuery={searchQuery}
-        onSearch={handleSearch}
-        onClear={handleClearSearch}
-        isSearchFocused={isSearchFocused}
-        onFocus={handleSearchFocus}
-        onBlur={handleSearchBlur}
-      />
+      {/* Search Bar - FIXED ALIGNMENT */}
+      <View style={styles.searchBarContainer}>
+        <SearchBar 
+          searchQuery={searchQuery}
+          onSearch={handleSearch}
+          onClear={handleClearSearch}
+          isSearchFocused={isSearchFocused}
+          onFocus={handleSearchFocus}
+          onBlur={handleSearchBlur}
+        />
+      </View>
 
-      {/* Search Results */}
-      <SearchResults 
-        searchResults={searchResults}
-        showResults={showResults}
-        onSelectResult={handleSearchResultSelect}
-        onStartNavigation={(item) => {
-          if (!userLocation) {
-            Alert.alert('Location Required', 'Please wait for your location to be detected');
-            return;
-          }
-          startNavigation(userLocation, item); // FIXED ORDER
-        }}
-      />
+      {/* Search Results - FIXED ALIGNMENT */}
+      {showResults && searchResults && searchResults.length > 0 && (
+        <View style={styles.searchResultsContainer}>
+          <SearchResults 
+            searchResults={searchResults}
+            showResults={showResults}
+            onSelectResult={handleSearchResultSelect}
+            onStartNavigation={handleQuickNavigation}
+          />
+        </View>
+      )}
 
       {/* Floating Buttons */}
       <FloatingButtons 
@@ -309,14 +449,16 @@ const Home = () => {
         onSetDestination={() => setShowDestinationOptions(true)}
       />
 
-      {/* Navigation Panel - Only shown when navigating */}
-      {isNavigating && (
+      {/* Navigation Panel */}
+      {selectedDestination && (
         <NavigationPanel 
           slideAnim={slideAnim}
           selectedDestination={selectedDestination}
-          travelTime={travelTime || (routeInfo && routeInfo.duration)}
-          distance={distance || (routeInfo && routeInfo.distance)}
+          travelTime={travelTime}
+          distance={distance}
           onStopNavigation={stopNavigation}
+          onStartNavigation={handleStartNavigation}
+          isNavigating={isNavigating}
         />
       )}
 
@@ -328,68 +470,20 @@ const Home = () => {
         </View>
       )}
 
-      {/* Current Location Button */}
-      <TouchableOpacity 
-        style={styles.currentLocationButton}
-        onPress={goToCurrentLocation}
-      >
-        <Ionicons name="navigate" size={24} color="#4285F4" />
-      </TouchableOpacity>
-
-      {/* Set Destination Button */}
-      <TouchableOpacity 
-        style={styles.setDestinationButton}
-        onPress={() => setShowDestinationOptions(true)}
-      >
-        <Ionicons name="flag" size={24} color="#FFFFFF" />
-      </TouchableOpacity>
-
-      {/* Navigation Panel (Bottom Sheet) */}
-      <Animated.View style={[styles.navigationPanel, { transform: [{ translateY: slideAnim }] }]}>
-        <View style={styles.navigationHeader}>
-          <Text style={styles.navigationTitle}>Navigation Active</Text>
-          <TouchableOpacity onPress={stopNavigation}>
-            <Ionicons name="close" size={24} color="#000" />
-          </TouchableOpacity>
-        </View>
-        
-        {selectedDestination && (
-          <View style={styles.destinationInfo}>
-            <Ionicons 
-              name={selectedDestination.id === 'custom' ? 'flag' : (iconMap[selectedDestination.type] || iconMap.default)} 
-              size={24} 
-              color="#4285F4" 
-            />
-            <Text style={styles.destinationName}>{selectedDestination.name}</Text>
-          </View>
-        )}
-        
-        {routeInfo && (
-          <View style={styles.routeInfo}>
-            <View style={styles.routeInfoItem}>
-              <Ionicons name="time" size={20} color="#5f5f5f" />
-              <Text style={styles.routeInfoText}>{travelTime} min</Text>
-            </View>
-            <View style={styles.routeInfoItem}>
-              <Ionicons name="walk" size={20} color="#5f5f5f" />
-              <Text style={styles.routeInfoText}>{distance} km</Text>
-            </View>
-          </View>
-        )}
-        
-        <View style={styles.navigationControls}>
-          <TouchableOpacity style={styles.stopButton} onPress={stopNavigation}>
-            <Text style={styles.stopButtonText}>Stop Navigation</Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-
       {/* Destination Options Modal */}
-      <DestinationModal 
+      <DestinationOptionsModal 
         visible={showDestinationOptions}
         onClose={() => setShowDestinationOptions(false)}
         onCreateCustomDestination={handleCreateCustomDestination}
         onSearchLocation={handleSearchLocation}
+      />
+      
+      {/* Place Details Modal (for showing info when a landmark is tapped) */}
+      <PlaceDetailsModal
+        visible={showPlaceDetails}
+        landmark={selectedDestination}
+        onClose={() => setShowPlaceDetails(false)}
+        onStartNavigation={handleStartNavigation}
       />
     </View>
   );

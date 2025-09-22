@@ -14,25 +14,38 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location to provide navigation services.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to your location to provide navigation services even when in the background."
+      }
     },
     "android": {
       "permissions": [
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.bericks.Navigation"
+      "package": "com.bericks.Navigation",
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "MAPBOX_ACCESS_TOKEN": "pk.eyJ1IjoiYmVyaWNrcyIsImEiOiJjbWVkMmxhdDIwNXdyMmxzNTA3ZnprMHk3In0.hE8cQigI9JFbb9YBHnOsHQ",
-      "router": {},
+      "MAPBOX_ACCESS_TOKEN": "pk.eyJ1IjoidmFydW5rbTM2MCIsImEiOiJjbWVpNHA5eGswNjBtMmtxdGxia2cxN2w2In0.f88HMcQt5Lh9ZQGIpeNKug",
+      "router": {
+        "origin": false
+      },
       "eas": {
         "projectId": "e215f1fb-d717-4bb8-9815-5c2483a5c43d"
       }
@@ -40,11 +53,18 @@
     "plugins": [
       "expo-router",
       [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+        }
+      ],
+      [
         "@rnmapbox/maps",
         {
-          "RNMapboxMapsDownloadToken":"sk.eyJ1IjoiYmVyaWNrcyIsImEiOiJjbWV2ZGZ5dWcwYjVwMmtxeHRuOTE3dWxsIn0.d7nD5CM2rsNLYE3YjcnkKg"
+          "RNMapboxMapsDownloadToken": "sk.eyJ1IjoiYmVyaWNrcyIsImEiOiJjbWV2ZGZ5dWcwYjVwMmtxeHRuOTE3dWxsIn0.d7nD5CM2rsNLYE3YjcnkKg"
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }

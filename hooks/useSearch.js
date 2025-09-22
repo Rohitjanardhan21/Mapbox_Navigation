@@ -9,9 +9,9 @@ export const useSearch = () => {
 
   const handleSearch = (query) => {
     setSearchQuery(query);
-    
+
     if (query.length > 0) {
-      const filtered = landmarks.filter(landmark => 
+      const filtered = landmarks.filter(landmark =>
         landmark.name.toLowerCase().includes(query.toLowerCase())
       );
       setSearchResults(filtered);
@@ -33,7 +33,7 @@ export const useSearch = () => {
     setSearchQuery(result.name);
     setShowResults(false);
     setIsSearchFocused(false);
-    return result;
+    // Removed the 'return result;' statement as it's not used by the parent component.
   };
 
   return {

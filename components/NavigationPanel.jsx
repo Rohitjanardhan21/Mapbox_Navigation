@@ -1,15 +1,18 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Animated, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { iconMap } from '../utils/constants';
 import { styles } from '../styles/components';
 
-export const NavigationPanel = ({ 
+// Correction: Remove 'export' from the component definition.
+const NavigationPanel = ({ 
   slideAnim, 
   selectedDestination, 
   travelTime, 
   distance, 
-  onStopNavigation 
+  onStopNavigation,
+  onStartNavigation, 
+  isNavigating 
 }) => {
   return (
     <Animated.View style={[styles.navigationPanel, { transform: [{ translateY: slideAnim }] }]}>
@@ -66,23 +69,18 @@ export const NavigationPanel = ({
       )}
       
       <View style={styles.navigationControls}>
-        <TouchableOpacity 
-          style={styles.startButton}
-          onPress={() => {
-            // Keep navigation active when Start is pressed
-            // This prevents the panel from closing
-            Alert.alert(
-              'Navigation Started',
-              'Follow the route to reach your destination',
-              [{ text: 'OK' }]
-            );
-          }}
-        >
-          <Text style={styles.startButtonText}>Start</Text>
-        </TouchableOpacity>
+        {/* Show Start button only if not already navigating */}
+        {!isNavigating && (
+          <TouchableOpacity 
+            style={styles.startButton}
+            onPress={onStartNavigation} 
+          >
+            <Text style={styles.startButtonText}>Start Navigation</Text>
+          </TouchableOpacity>
+        )}
         
         <TouchableOpacity style={styles.stopButton} onPress={onStopNavigation}>
-          <Text style={styles.stopButtonText}>Exit</Text>
+          <Text style={styles.stopButtonText}>{isNavigating ? 'Stop Navigation' : 'Cancel'}</Text>
         </TouchableOpacity>
       </View>
     </Animated.View>
@@ -95,3 +93,6 @@ const getArrivalTime = (travelTimeMinutes) => {
   now.setMinutes(now.getMinutes() + parseInt(travelTimeMinutes));
   return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
+
+// Correction: Use a single default export.
+export default NavigationPanel;
