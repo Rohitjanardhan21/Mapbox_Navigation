@@ -1,492 +1,451 @@
 import { useEffect, useState, useRef } from 'react';
 import { 
-  View, 
-  ActivityIndicator,
-  Keyboard,
-  Alert,
-  Text
+  View, 
+  ActivityIndicator,
+  Keyboard,
+  Alert,
+  Text // Make sure Text is imported
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
-import Constants from 'expo-constants';
 import * as Font from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 
 import { landmarks } from "../constants/landmarks";
 import { DEFAULT_CAMERA_SETTINGS } from '../utils/constants';
 
-// Hooks - Named imports (with curly braces)
+// Hooks
 import { useLocation } from '../hooks/useLocation';
 import { useSearch } from '../hooks/useSearch';
 import { useNavigation } from '../hooks/useNavigation';
 
-// Components - Default imports (without curly braces)
+// Components
 import SearchBar from '../components/SearchBar';
 import SearchResults from '../components/SearchResults';
 import NavigationPanel from '../components/NavigationPanel';
-import DestinationOptionsModal from '../components/DestinationOptionsModal';
-import PlaceDetailsModal from '../components/PlaceDetailsModal';
+import DestinationModal from '../components/DestinationModal';
 import MapMarkers from '../components/MapMarkers';
 import FloatingButtons from '../components/FloatingButtons';
 
 // Styles
 import { styles } from '../styles/main';
 
-// Set Mapbox access token - USE YOUR ACTUAL TOKEN
+// Set Mapbox access token
 MapboxGL.setAccessToken('pk.eyJ1IjoiYmVyaWNrcyIsImEiOiJjbWVkMmxhdDIwNXdyMmxzNTA3ZnprMHk3In0.hE8cQigI9JFbb9YBHnOsHQ');
 
 const Home = () => {
-  const [ready, setReady] = useState(false);
-  const [fontsLoaded, setFontsLoaded] = useState(false);
-  const [showPlaceDetails, setShowPlaceDetails] = useState(false);
-  const cameraRef = useRef(null);
+  const [ready, setReady] = useState(false);
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const cameraRef = useRef(null);
+  
+  // Load fonts
+  useEffect(() => {
+    async function loadFonts() {
+      try {
+        await Font.loadAsync({
+          ...Ionicons.font
+        });
+        console.log('Fonts loaded successfully');
+        setFontsLoaded(true);
+      } catch (error) {
+        console.error('Error loading fonts:', error);
+      }
+    }
+    
+    loadFonts();
+  }, []);
+
+  // Custom hooks
+  const { 
+    userLocation, 
+    locationPermission, 
+    goToCurrentLocation,
+    setUserLocation 
+  } = useLocation();
+  
+  const { 
+    searchQuery, 
+    searchResults, 
+    showResults, 
+    isSearchFocused, 
+    handleSearch, 
+    clearSearch, 
+    handleSelectResult,
+    setIsSearchFocused 
+  } = useSearch();
+  
+  const { 
+    selectedDestination, 
+    routeInfo, 
+    isNavigating, 
+    travelTime, 
+    distance, 
+    showDestinationOptions, 
+    slideAnim, 
+    startNavigation, 
+    stopNavigation, 
+    handleMapPress, 
+    createCustomDestination,
+    setShowDestinationOptions,
+    isCalculatingRoute,
+    calculateRouteInfo,
+    setSelectedDestination,
+    selectRandomDestination,
+    handleImmediateMapNavigation // <--- FIX 1: Import new handler
+  } = useNavigation();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await MapboxGL.requestAndroidLocationPermissions();
+        setReady(true);
+      } catch (error) {
+        console.error('Error requesting permissions:', error);
+        setReady(true);
+      }
+    })();
+  }, []);
+
+  // Calculate route info whenever a destination is selected
+  useEffect(() => {
+    if (selectedDestination && userLocation && !isNavigating) {
+      console.log('Calculating route info for selected destination:', selectedDestination.name);
+      calculateRouteInfo(userLocation, selectedDestination);
+    }
+  }, [selectedDestination, userLocation, isNavigating, calculateRouteInfo]);
+
+  const handleGoToCurrentLocation = async () => {
+    const location = await goToCurrentLocation();
+    if (location && cameraRef.current) {
+      cameraRef.current.setCamera({
+        centerCoordinate: [location.longitude, location.latitude], 
+        zoomLevel: 16,
+        animationDuration: 1000,
+      });
+    }
+  };
   
-  // Debug imports
-  useEffect(() => {
-    console.log('Component imports:', {
-      SearchBar: typeof SearchBar,
-      SearchResults: typeof SearchResults,
-      NavigationPanel: typeof NavigationPanel,
-      MapMarkers: typeof MapMarkers,
-      FloatingButtons: typeof FloatingButtons,
-      useLocation: typeof useLocation,
-      useSearch: typeof useSearch,
-      useNavigation: typeof useNavigation
-    });
-  }, []);
-
-  // Load fonts
-  useEffect(() => {
-    async function loadFonts() {
-      try {
-        await Font.loadAsync({
-          ...Ionicons.font
-        });
-        console.log('Fonts loaded successfully');
-        setFontsLoaded(true);
-      } catch (error) {
-        console.error('Error loading fonts:', error);
-      }
+  // --- NEW HANDLER TO WRAP MAPBOX EVENT AND USER LOCATION ---
+  const handleMapPressAndRoute = (event) => {
+    // 1. If search is active, dismiss it first
+    if (isSearchFocused || (searchResults && searchResults.length > 0)) {
+        handleClearSearch();
     }
     
-    loadFonts();
-  }, []);
-
-  // Custom hooks
-  const { userLocation, locationPermission, goToCurrentLocation, setUserLocation } = useLocation();
-  const { 
-    searchQuery, 
-    searchResults, 
-    showResults, 
-    isSearchFocused, 
-    handleSearch, 
-    clearSearch, 
-    handleSelectResult,
-    setIsSearchFocused 
-  } = useSearch();
-  
-  const { 
-    selectedDestination, 
-    routeInfo, 
-    isNavigating, 
-    travelTime, 
-    distance, 
-    showDestinationOptions, 
-    slideAnim, 
-    startNavigation, 
-    stopNavigation, 
-    handleMapPress, 
-    createCustomDestination,
-    handleSelectResult: handleNavigationSelectResult,
-    setShowDestinationOptions,
-    setSelectedDestination,
-    isCalculatingRoute,
-    calculateRouteInfo
-  } = useNavigation();
-
-  useEffect(() => {
-    (async () => {
-      // Request location permissions
-      try {
-        // For Android
-        await MapboxGL.requestAndroidLocationPermissions();
-        setReady(true);
-      } catch (error) {
-        console.error('Error requesting permissions:', error);
-        setReady(true); // Still set ready to true to show the map
-      }
-    })();
-  }, []);
-
-  // Calculate route info whenever a destination is selected
-  useEffect(() => {
-    if (selectedDestination && userLocation && !isNavigating) {
-      console.log('Calculating route info for selected destination:', selectedDestination.name);
-      calculateRouteInfo(userLocation, selectedDestination);
-    }
-  }, [selectedDestination, userLocation, isNavigating, calculateRouteInfo]);
-
-  // Update camera position during navigation
-  useEffect(() => {
-    if (isNavigating && userLocation && cameraRef.current) {
-      cameraRef.current.setCamera({
-        centerCoordinate: [userLocation.longitude, userLocation.latitude],
-        zoomLevel: DEFAULT_CAMERA_SETTINGS.navigationZoomLevel,
-        animationMode: 'flyTo',
-        animationDuration: 1000,
-      });
-    }
-  }, [userLocation, isNavigating]);
-
-  const handleGoToCurrentLocation = async () => {
-    const location = await goToCurrentLocation();
-    if (location && cameraRef.current) {
-      cameraRef.current.setCamera({
-        centerCoordinate: [location.longitude, location.latitude],
-        zoomLevel: 16,
-        animationDuration: 1000,
-      });
-    }
+    // 2. Call the streamlined hook function, passing the map event and user location
+    handleImmediateMapNavigation(event, userLocation);
   };
+  // -----------------------------------------------------------
 
-  const handleSearchFocus = () => {
-    setIsSearchFocused(true);
-  };
+  const handleRandomNavigation = async () => {
+    if (!userLocation) {
+      Alert.alert('Location Required', 'Please wait for your location to be detected before selecting a random route.');
+      return;
+    }
+    
+    const destination = selectRandomDestination();
+    
+    if (destination) {
+      await startNavigation(userLocation, destination);
+      
+      const destCoords = getCoordinates(destination);
+      if (destCoords && cameraRef.current) {
+        cameraRef.current.setCamera({
+          centerCoordinate: destCoords,
+          zoomLevel: 14,
+          animationDuration: 1000,
+        });
+      }
+    } else {
+       Alert.alert('Error', 'Failed to generate a random destination.');
+    }
+  };
 
-  const handleSearchBlur = () => {
-    if (!searchQuery) {
-      setIsSearchFocused(false);
-    }
-  };
 
-  const handleClearSearch = () => {
-    clearSearch();
-    Keyboard.dismiss();
-  };
+  const handleSearchFocus = () => {
+    setIsSearchFocused(true);
+  };
 
-  // Helper function to extract coordinates in [longitude, latitude] format
-  const getCoordinates = (location) => {
-    if (!location) return null;
-    
-    if (Array.isArray(location)) {
-      return location.length === 2 ? location : null;
-    }
-    
-    if (location.coordinates && Array.isArray(location.coordinates)) {
-      return location.coordinates;
-    }
-    
-    if (location.longitude !== undefined && location.latitude !== undefined) {
-      return [location.longitude, location.latitude];
-    }
-    
-    return null;
-  };
+  const handleSearchBlur = () => {
+    if (!searchQuery) {
+      setIsSearchFocused(false);
+    }
+  };
 
-  // Quick navigation handler
-  const handleQuickNavigation = (item) => {
-    console.log('Quick navigation started for:', item);
-    const userCoords = getCoordinates(userLocation);
-    if (!userCoords) {
-      Alert.alert('Location Required', 'Please wait for your location to be detected');
-      return;
-    }
-    
-    const resultCoords = getCoordinates(item);
-    if (!resultCoords) {
-      Alert.alert('Error', 'This location has invalid coordinates');
-      return;
-    }
-    
-    // Update search query with the selected item
-    handleSelectResult(item);
-    
-    // Start navigation
-    startNavigation(userCoords, {
-      ...item,
-      coordinates: resultCoords
-    });
-  };
+  const handleClearSearch = () => {
+    clearSearch();
+    Keyboard.dismiss();
+  };
 
-  const handleLandmarkPress = (landmark) => {
-    console.log('handleLandmarkPress called with:', landmark);
-    const userCoords = getCoordinates(userLocation);
-    if (!userCoords) {
-      Alert.alert('Location Required', 'Please wait for your location to be detected');
-      return;
-    }
-    
-    try {
-      // Ensure landmark has coordinates in the correct format
-      const landmarkCoords = getCoordinates(landmark.location || landmark);
-      if (!landmarkCoords) {
-        Alert.alert('Error', 'This location does not have valid coordinates');
-        return;
-      }
-      
-      // Update landmark with proper coordinates
-      const landmarkWithCoords = {
-        ...landmark,
-        coordinates: landmarkCoords
-      };
-      
-      // Set as selected destination (this will trigger route calculation)
-      setSelectedDestination(landmarkWithCoords);
-      
-      // Move camera to landmark
-      if (cameraRef.current) {
-        cameraRef.current.setCamera({
-          centerCoordinate: landmarkCoords,
-          zoomLevel: 16,
-          animationDuration: 1000,
-        });
-      }
-      
-      // Show the PlaceDetailsModal
-      setShowPlaceDetails(true);
-      
-    } catch (error) {
-      console.error('Error in handleLandmarkPress:', error);
-      Alert.alert('Error', 'Failed to select landmark');
-    }
-  };
+  // Helper function to extract coordinates
+  const getCoordinates = (location) => {
+    if (!location) return null;
+    
+    if (Array.isArray(location)) {
+      return location.length === 2 ? location : null;
+    }
+    
+    if (location.coordinates && Array.isArray(location.coordinates)) {
+      return location.coordinates;
+    }
+    
+    if (location.longitude !== undefined && location.latitude !== undefined) {
+      return [location.longitude, location.latitude];
+    }
+    
+    return null;
+  };
 
-  const handleCreateCustomDestination = () => {
-    const userCoords = getCoordinates(userLocation);
-    if (!userCoords) {
-      Alert.alert('Location Required', 'Please wait for your location to be detected');
-      return;
-    }
-    
-    createCustomDestination((destination) => {
-      const destCoords = getCoordinates(destination);
-      if (!destCoords) {
-        Alert.alert('Error', 'Invalid destination coordinates');
-        return;
-      }
-      
-      const destinationWithCoords = {
-        ...destination,
-        coordinates: destCoords
-      };
-      
-      startNavigation(userCoords, destinationWithCoords);
-    });
-  };
+  // Quick navigation handler
+  const handleQuickNavigation = (item) => {
+    console.log('Quick navigation started for:', item);
+    const userCoords = getCoordinates(userLocation);
+    if (!userCoords) {
+      Alert.alert('Location Required', 'Please wait for your location to be detected');
+      return;
+    }
+    
+    const resultCoords = getCoordinates(item);
+    if (!resultCoords) {
+      Alert.alert('Error', 'This location has invalid coordinates');
+      return;
+    }
+    
+    handleSelectResult(item);
+    startNavigation(userLocation, {
+      ...item,
+      coordinates: resultCoords
+    });
+  };
 
-  const handleSearchLocation = () => {
-    setShowDestinationOptions(false);
-    setIsSearchFocused(true);
-  };
+  const handleLandmarkPress = (landmark) => {
+    console.log('handleLandmarkPress called with:', landmark);
+    
+    if (!userLocation) {
+      Alert.alert('Location Required', 'Please wait for your location to be detected');
+      return;
+    }
+    
+    try {
+      const landmarkCoords = getCoordinates(landmark.location || landmark);
+      if (!landmarkCoords) {
+        Alert.alert('Error', 'This location has invalid coordinates');
+        return;
+      }
+      
+      const landmarkWithCoords = {
+        ...landmark,
+        coordinates: landmarkCoords
+      };
+      
+      setSelectedDestination(landmarkWithCoords);
+      
+      if (cameraRef.current) {
+        cameraRef.current.setCamera({
+          centerCoordinate: landmarkCoords,
+          zoomLevel: 16,
+          animationDuration: 1000,
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleLandmarkPress:', error);
+      Alert.alert('Error', 'Failed to select landmark');
+    }
+  };
 
-  const handleSearchResultSelect = (result) => {
-    console.log('handleSearchResultSelect called with:', result);
-    const userCoords = getCoordinates(userLocation);
-    if (!userCoords) {
-      Alert.alert('Location Required', 'Please wait for your location to be detected');
-      return;
-    }
-    
-    try {
-      // Ensure result has coordinates in the correct format
-      const resultCoords = getCoordinates(result.location || result);
-      if (!resultCoords) {
-        Alert.alert('Error', 'This location does not have valid coordinates');
-        return;
-      }
-      
-      // Update result with proper coordinates
-      const resultWithCoords = {
-        ...result,
-        coordinates: resultCoords
-      };
-      
-      // Update search query with the selected result
-      handleSelectResult(resultWithCoords);
-      
-      // Set as selected destination (this will trigger route calculation)
-      setSelectedDestination(resultWithCoords);
-      
-      // Move camera to selected destination
-      if (cameraRef.current) {
-        cameraRef.current.setCamera({
-          centerCoordinate: resultCoords,
-          zoomLevel: 16,
-          animationDuration: 1000,
-        });
-      }
-      
-      // Show the PlaceDetailsModal after selecting a search result
-      setShowPlaceDetails(true);
-      
-    } catch (error) {
-      console.error('Error in handleSearchResultSelect:', error);
-      Alert.alert('Error', 'Failed to select location');
-    }
-  };
+  const handleCreateCustomDestination = () => {
+    if (!userLocation) {
+      Alert.alert('Location Required', 'Please wait for your location to be detected');
+      return;
+    }
+    
+    const destination = createCustomDestination();
+    if (destination) {
+      startNavigation(userLocation, destination);
+    }
+  };
 
-  // Add this function to handle starting navigation
-  const handleStartNavigation = async () => {
-    if (!selectedDestination) {
-      Alert.alert('Error', 'No destination selected');
-      return;
-    }
-    
-    const userCoords = getCoordinates(userLocation);
-    if (!userCoords) {
-      Alert.alert('Location Required', 'Please wait for your location to be detected');
-      return;
-    }
-    
-    console.log('Starting navigation to:', selectedDestination);
-    const success = await startNavigation(userCoords, selectedDestination);
-    
-    if (success) {
-      console.log('Navigation started successfully');
-      // Hide the modal after navigation starts
-      setShowPlaceDetails(false);
-    } else {
-      Alert.log('Navigation Error', 'Could not start navigation. Please try again.');
-    }
-  };
+  const handleSearchLocation = () => {
+    setShowDestinationOptions(false);
+    setIsSearchFocused(true);
+  };
 
-  if (!ready || !fontsLoaded) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#4285F4" />
-        <Text style={{marginTop: 10}}>Loading map...</Text>
-      </View>
-    );
-  }
+  const handleSearchResultSelect = (result) => {
+    console.log('handleSearchResultSelect called with:', result);
+    
+    if (!userLocation) {
+      Alert.alert('Location Required', 'Please wait for your location to be detected');
+      return;
+    }
+    
+    try {
+      const resultCoords = getCoordinates(result.location || result);
+      if (!resultCoords) {
+        Alert.alert('Error', 'This location has invalid coordinates');
+        return;
+      }
+      
+      const resultWithCoords = {
+        ...result,
+        coordinates: resultCoords
+      };
+      
+      handleSelectResult(resultWithCoords);
+      setSelectedDestination(resultWithCoords);
+      
+      if (cameraRef.current) {
+        cameraRef.current.setCamera({
+          centerCoordinate: resultCoords,
+          zoomLevel: 16,
+          animationDuration: 1000,
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleSearchResultSelect:', error);
+      Alert.alert('Error', 'Failed to select location');
+    }
+  };
 
-  return (
-    <View style={styles.container}>
-      {/* Map */}
-      <MapboxGL.MapView 
-        style={styles.map}
-        onPress={handleMapPress}
-        logoEnabled={false}
-      >
-        <MapboxGL.Camera 
-          ref={cameraRef}
-          defaultSettings={{
-            zoomLevel: DEFAULT_CAMERA_SETTINGS.zoomLevel, 
-            centerCoordinate: DEFAULT_CAMERA_SETTINGS.centerCoordinate
-          }}
-        />
-        
-        {/* User location - REMOVED onUpdate prop */}
-        {userLocation && (
-          <MapboxGL.UserLocation 
-            visible={true}
-          />
-        )}
-        
-        <MapMarkers 
-          landmarks={landmarks}
-          userLocation={userLocation}
-          selectedDestination={selectedDestination}
-          onLandmarkPress={handleLandmarkPress}
-        />
-        
-        {/* CORRECTED: Draw route line without unmounting the component */}
-        <MapboxGL.ShapeSource
-          id="routeSource"
-          // Conditionally provide the shape
-          shape={
-            isNavigating && userLocation && selectedDestination && routeInfo ?
-            {
-              type: 'Feature',
-              geometry: {
-                type: 'LineString',
-                coordinates: routeInfo.coordinates && routeInfo.coordinates.length > 0 
-                  ? routeInfo.coordinates 
-                  : [getCoordinates(userLocation), getCoordinates(selectedDestination)],
-              },
-            }
-            :
-            null // If not navigating, don't provide a shape
-          }
-        >
-          <MapboxGL.LineLayer
-            id="routeLine"
-            style={{
-              lineColor: '#4285F4',
-              lineWidth: 5,
-              lineOpacity: 0.7,
-            }}
-          />
-        </MapboxGL.ShapeSource>
+  const handleStartNavigation = async () => {
+    if (!selectedDestination) {
+      Alert.alert('Error', 'No destination selected');
+      return;
+    }
+    
+    if (!userLocation) {
+      Alert.alert('Location Required', 'Please wait for your location to be detected');
+      return;
+    }
+    
+    console.log('Starting navigation to:', selectedDestination);
+    const success = await startNavigation(userLocation, selectedDestination);
+    
+    if (!success) {
+      Alert.alert('Navigation Error', 'Could not start navigation. Please try again.');
+    }
+  };
 
-      </MapboxGL.MapView>
+  // Handle location updates properly
+  const handleLocationUpdate = (location) => {
+    if (setUserLocation) {
+      setUserLocation(location.coords);
+    }
+  };
 
-      {/* Search Bar - FIXED ALIGNMENT */}
-      <View style={styles.searchBarContainer}>
-        <SearchBar 
-          searchQuery={searchQuery}
-          onSearch={handleSearch}
-          onClear={handleClearSearch}
-          isSearchFocused={isSearchFocused}
-          onFocus={handleSearchFocus}
-          onBlur={handleSearchBlur}
-        />
-      </View>
+  if (!ready || !fontsLoaded) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#4285F4" />
+        <Text style={{marginTop: 10}}>Loading map...</Text>
+      </View>
+    );
+  }
 
-      {/* Search Results - FIXED ALIGNMENT */}
-      {showResults && searchResults && searchResults.length > 0 && (
-        <View style={styles.searchResultsContainer}>
-          <SearchResults 
-            searchResults={searchResults}
-            showResults={showResults}
-            onSelectResult={handleSearchResultSelect}
-            onStartNavigation={handleQuickNavigation}
-          />
-        </View>
-      )}
+  return (
+    <View style={styles.container}>
+      <MapboxGL.MapView 
+        style={styles.map}
+        onPress={handleMapPressAndRoute} // <--- CORRECTED: Using the new, immediate handler
+        logoEnabled={false}
+      >
+        <MapboxGL.Camera 
+          ref={cameraRef}
+          defaultSettings={{
+            zoomLevel: DEFAULT_CAMERA_SETTINGS.zoomLevel, 
+            centerCoordinate: DEFAULT_CAMERA_SETTINGS.centerCoordinate
+          }}
+        />
+        
+        {userLocation && (
+          <MapboxGL.UserLocation 
+            visible={true}
+            onUpdate={handleLocationUpdate}
+          />
+        )}
+        
+        <MapMarkers 
+          landmarks={landmarks}
+          userLocation={userLocation}
+          selectedDestination={selectedDestination}
+          onLandmarkPress={handleLandmarkPress}
+        />
+        
+        {isNavigating && userLocation && selectedDestination && routeInfo && (
+          <MapboxGL.ShapeSource
+            id="routeSource"
+            shape={{
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: routeInfo.coordinates && routeInfo.coordinates.length > 0 
+                  ? routeInfo.coordinates 
+                  : [getCoordinates(userLocation), getCoordinates(selectedDestination)],
+              },
+            }}
+          >
+            <MapboxGL.LineLayer
+              id="routeLine"
+              style={{
+                lineColor: '#4285F4',
+                lineWidth: 5,
+                lineOpacity: 0.7,
+              }}
+            />
+          </MapboxGL.ShapeSource>
+        )}
+      </MapboxGL.MapView>
 
-      {/* Floating Buttons */}
-      <FloatingButtons 
-        onGoToCurrentLocation={handleGoToCurrentLocation}
-        onSetDestination={() => setShowDestinationOptions(true)}
-      />
+      <SearchBar 
+        searchQuery={searchQuery}
+        onSearch={handleSearch}
+        onClear={handleClearSearch}
+        isSearchFocused={isSearchFocused}
+        onFocus={handleSearchFocus}
+        onBlur={handleSearchBlur}
+      />
 
-      {/* Navigation Panel */}
-      {selectedDestination && (
-        <NavigationPanel 
-          slideAnim={slideAnim}
-          selectedDestination={selectedDestination}
-          travelTime={travelTime}
-          distance={distance}
-          onStopNavigation={stopNavigation}
-          onStartNavigation={handleStartNavigation}
-          isNavigating={isNavigating}
-        />
-      )}
+      {showResults && searchResults && searchResults.length > 0 && (
+        <SearchResults 
+          searchResults={searchResults}
+          showResults={showResults}
+          onSelectResult={handleSearchResultSelect}
+          onStartNavigation={handleQuickNavigation}
+        />
+      )}
 
-      {/* Loading Overlay */}
-      {isCalculatingRoute && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#4285F4" />
-          <Text style={styles.loadingText}>Calculating route...</Text>
-        </View>
-      )}
+      <FloatingButtons 
+        onGoToCurrentLocation={handleGoToCurrentLocation}
+        onSetDestination={() => setShowDestinationOptions(true)}
+        onShowLayers={() => Alert.alert('Layers', 'Map layers functionality')}
+        onRandomNavigation={handleRandomNavigation}
+      />
 
-      {/* Destination Options Modal */}
-      <DestinationOptionsModal 
-        visible={showDestinationOptions}
-        onClose={() => setShowDestinationOptions(false)}
-        onCreateCustomDestination={handleCreateCustomDestination}
-        onSearchLocation={handleSearchLocation}
-      />
-      
-      {/* Place Details Modal (for showing info when a landmark is tapped) */}
-      <PlaceDetailsModal
-        visible={showPlaceDetails}
-        landmark={selectedDestination}
-        onClose={() => setShowPlaceDetails(false)}
-        onStartNavigation={handleStartNavigation}
-      />
-    </View>
-  );
+      {selectedDestination && (
+        <NavigationPanel 
+          slideAnim={slideAnim}
+          selectedDestination={selectedDestination}
+          travelTime={travelTime}
+          distance={distance}
+          onStopNavigation={stopNavigation}
+          onStartNavigation={handleStartNavigation}
+          isNavigating={isNavigating}
+        />
+      )}
+
+      {isCalculatingRoute && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#4285F4" />
+          <Text style={styles.loadingText}>Calculating route...</Text>
+        </View>
+      )}
+
+      <DestinationModal 
+        visible={showDestinationOptions}
+        onClose={() => setShowDestinationOptions(false)}
+        onCreateCustomDestination={handleCreateCustomDestination}
+        onSearchLocation={handleSearchLocation}
+      />
+    </View>
+  );
 };
 
 export default Home;

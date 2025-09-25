@@ -13,7 +13,7 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // New styles for positioning the SearchBar and SearchResults
+  // Styles for positioning the SearchBar and SearchResults
   searchBarContainer: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 60 : 40, // Adjust for iOS and Android
@@ -27,7 +27,6 @@ export const styles = StyleSheet.create({
     left: 10,
     right: 10,
     zIndex: 1, // Ensures results are on top of the map, but below the search bar
-    // Optional: add a maxHeight or a fixed height if needed
     maxHeight: '50%',
   },
 
@@ -51,23 +50,20 @@ export const styles = StyleSheet.create({
 
   // Existing styles for other components
   navigationPanel: {
-    // Add styles for your navigation panel here
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     zIndex: 2,
-    // Other styles like backgroundColor, padding, etc.
   },
+  // Floating Buttons Container
   floatingButtonsContainer: {
-    // Add styles for your floating buttons here
     position: 'absolute',
-    bottom: 150, // Adjust as needed to avoid the navigation panel
+    bottom: 30, 
     right: 20,
+    flexDirection: 'column-reverse', 
+    alignItems: 'flex-end',
+    gap: 15,
     zIndex: 2,
-  },
-  destinationModalContainer: {
-    // Styles for the modal
-    // This is likely handled by the component itself but can be a good place for overlay styles
   },
 });
