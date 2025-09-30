@@ -1,98 +1,68 @@
-import { StyleSheet } from 'react-native';
+// styles/components.js
+import { StyleSheet, Platform, Dimensions } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
 
 export const styles = StyleSheet.create({
-  // SearchBar styles
-  searchContainer: {
-    // REMOVED: position: 'absolute', top, left, right, zIndex
+  // FloatingButtons styles ONLY
+  floatingButtonsContainer: {
+    position: 'absolute',
+    bottom: 120,
+    right: 20,
+    gap: 15,
+    zIndex: 998,
+    alignItems: 'flex-end',
   },
-  searchInputWrapper: { // Corrected name to match SearchBar.js
-    flexDirection: 'row',
+  setDestinationButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#4285F4',
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  currentLocationButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  floatingButton: {
+    width: 50,
+    height: 50,
     borderRadius: 25,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    marginLeft: 10,
-  },
-  clearButton: {
-    padding: 5,
-  },
-  // Additions to support the profile button in SearchBar.js
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchRightIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  searchContainerFocused: {
-    // Add styles for focused state if needed, e.g., borderColor
-  },
-
-  // SearchResults styles
-  resultsContainer: {
-    // REMOVED: position: 'absolute', top, left, right, zIndex
     backgroundColor: 'white',
-    borderRadius: 15,
-    maxHeight: 300,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-  },
-  resultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  resultIcon: {
-    marginRight: 12,
-  },
-  resultTextContainer: {
-    flex: 1,
-  },
-  resultTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  resultSubtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
-  },
-  navigateButton: {
-    padding: 8,
-  },
-  noResults: {
-    padding: 30,
-    alignItems: 'center',
-  },
-  noResultsText: {
-    fontSize: 16,
-    color: '#999',
-    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
 
   // NavigationPanel styles
   navigationPanel: {
-    // REMOVED: position: 'absolute', bottom, left, right, zIndex
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -102,6 +72,7 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 10,
+    zIndex: 997,
   },
   navigationHeader: {
     alignItems: 'center',
@@ -217,25 +188,27 @@ export const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  // FloatingButtons styles
-  floatingButtons: {
-    // REMOVED: position: 'absolute', bottom, right, gap
+  // Other component styles (MapMarkers, DestinationModal, etc.)
+  markerContainer: {
+    alignItems: 'center',
   },
-  floatingButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'white',
+  markerPin: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#4285F4',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
-
-  // DestinationModal styles
+  markerText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  selectedMarker: {
+    backgroundColor: '#ff6b35',
+    transform: [{ scale: 1.2 }],
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -269,28 +242,4 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
-
-  // MapMarkers styles
-  markerContainer: {
-    alignItems: 'center',
-  },
-  markerPin: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#4285F4',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  markerText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  selectedMarker: {
-    backgroundColor: '#ff6b35',
-    transform: [{ scale: 1.2 }],
-  },
 });
-
-export default styles;
