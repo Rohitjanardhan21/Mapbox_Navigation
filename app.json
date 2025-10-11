@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,  
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -17,14 +17,15 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs access to your location to provide navigation services.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to your location to provide navigation services even when in the background."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to your location to provide navigation services even when in the background.",
+        "MGLMapboxAccessToken": "pk.eyJ1IjoidmFydW5rbTM2MCIsImEiOiJjbWVpNHA5eGswNjBtMmtxdGxia2cxNw2In0.f88HMcQt5Lh9ZQGIpeNKug"
       }
     },
     "android": {
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_BACKGROUND_LOCATION"
+        "ACCESS_BACKGROUND_LOCATION"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -32,9 +33,10 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.bericks.Navigation",
+      "newArchEnabled": false,
       "config": {
-        "googleMaps": {
-          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+        "mapbox": {
+          "accessToken": "pk.eyJ1IjoidmFydW5rbTM2MCIsImEiOiJjbWVpNHA5eGswNjBtMmtxdGxia2cxNw2In0.f88HMcQt5Lh9ZQGIpeNKug"
         }
       }
     },
@@ -42,7 +44,6 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "MAPBOX_ACCESS_TOKEN": "pk.eyJ1IjoidmFydW5rbTM2MCIsImEiOiJjbWVpNHA5eGswNjBtMmtxdGxia2cxN2w2In0.f88HMcQt5Lh9ZQGIpeNKug",
       "router": {
         "origin": false
       },
