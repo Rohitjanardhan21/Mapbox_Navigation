@@ -7,32 +7,46 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,  
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location to provide navigation services.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to your location to provide navigation services even when in the background.",
+        "MGLMapboxAccessToken": "pk.eyJ1IjoidmFydW5rbTM2MCIsImEiOiJjbWVpNHA5eGswNjBtMmtxdGxia2cxNw2In0.f88HMcQt5Lh9ZQGIpeNKug"
+      }
     },
     "android": {
       "permissions": [
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.bericks.Navigation"
+      "package": "com.bericks.Navigation",
+      "newArchEnabled": false,
+      "config": {
+        "mapbox": {
+          "accessToken": "pk.eyJ1IjoidmFydW5rbTM2MCIsImEiOiJjbWVpNHA5eGswNjBtMmtxdGxia2cxNw2In0.f88HMcQt5Lh9ZQGIpeNKug"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "MAPBOX_ACCESS_TOKEN": "pk.eyJ1IjoiYmVyaWNrcyIsImEiOiJjbWVkMmxhdDIwNXdyMmxzNTA3ZnprMHk3In0.hE8cQigI9JFbb9YBHnOsHQ",
-      "router": {},
+      "router": {
+        "origin": false
+      },
       "eas": {
         "projectId": "e215f1fb-d717-4bb8-9815-5c2483a5c43d"
       }
@@ -40,11 +54,19 @@
     "plugins": [
       "expo-router",
       [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+        }
+      ],
+      [
         "@rnmapbox/maps",
         {
-          "RNMapboxMapsDownloadToken":"sk.eyJ1IjoiYmVyaWNrcyIsImEiOiJjbWV2ZGZ5dWcwYjVwMmtxeHRuOTE3dWxsIn0.d7nD5CM2rsNLYE3YjcnkKg"
+          "RNMapboxMapsDownloadToken": "sk.eyJ1IjoiYmVyaWNrcyIsImEiOiJjbWV2ZGZ5dWcwYjVwMmtxeHRuOTE3dWxsIn0.d7nD5CM2rsNLYE3YjcnkKg"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-asset"
     ]
   }
 }
