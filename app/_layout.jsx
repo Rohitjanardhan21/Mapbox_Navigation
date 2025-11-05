@@ -1,12 +1,26 @@
-import { StyleSheet, Text, View } from 'react-native'
-import { Stack } from 'expo-router'
+import { StyleSheet } from 'react-native';
+import { Stack } from 'expo-router';
 
-const _layout = () => {
+const Layout = () => {
   return (
-    <Stack />
-  )
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: styles.container,
+      }}
+    >
+      <Stack.Screen 
+        name="index"
+      />
+    </Stack>
+  );
 }
 
-export default _layout
+export default Layout;
 
-const styles = StyleSheet.create({})
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+});

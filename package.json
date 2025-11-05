@@ -1,5 +1,5 @@
 {
-  "name": "navigation",
+  "name": "Navigation",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
@@ -29,6 +29,5 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
-  },
-  "private": true
+  }
 }

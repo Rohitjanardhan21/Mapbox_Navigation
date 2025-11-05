@@ -7,12 +7,11 @@ import {
   Text,
   TouchableOpacity,
   Keyboard,
-  StyleSheet,
   Alert,
   Modal
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
-import Constants from 'expo-constants';
+import * as Font from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
@@ -20,11 +19,24 @@ import * as Speech from 'expo-speech';
 import { landmarks } from "../constants/landmarks";
 import { styles } from '../styles/Design_Home';
 
+// Hooks
+import { useLocation } from '../hooks/useLocation';
+import { useSearch } from '../hooks/useSearch';
+import { useNavigation } from '../hooks/useNavigation';
 
+// Components
+import SearchBar from '../components/SearchBar';
+import SearchResults from '../components/SearchResults';
+import NavigationPanel from '../components/NavigationPanel';
+import DestinationModal from '../components/DestinationModal';
+import MapMarkers from '../components/MapMarkers';
+import FloatingButtons from '../components/FloatingButtons';
 
+// Styles
+import { styles } from '../styles/main';
 
-
-MapboxGL.setAccessToken(Constants.expoConfig.extra?.MAPBOX_ACCESS_TOKEN || '');
+// Set Mapbox access token - Use your actual token from app.json
+MapboxGL.setAccessToken('pk.eyJ1IjoidmFydW5rbTM2MCIsImEiOiJjbWVpNHA5eGswNjBtMmtxdGxia2cxNw2In0.f88HMcQt5Lh9ZQGIpeNKug');
 
 const Home = () => {
   const [ready, setReady] = useState(false);
@@ -142,101 +154,169 @@ const Home = () => {
     };
   }, [isNavigating]);
 
-  // Calculate route between two points
-  const calculateRoute = async (origin, destination) => {
+  const handleGoToCurrentLocation = async () => {
     try {
-      // Use Mapbox Directions API
-      const response = await fetch(
-        `https://api.mapbox.com/directions/v5/mapbox/walking/${origin[0]},${origin[1]};${destination[0]},${destination[1]}?geometries=geojson&access_token=${Constants.expoConfig.extra?.MAPBOX_ACCESS_TOKEN}`
-      );
-      
-      const data = await response.json();
-      
-      if (data.routes && data.routes[0]) {
-        const route = data.routes[0];
-        setDistance((route.distance / 1000).toFixed(1));
-        setTravelTime(Math.ceil(route.duration / 60));
-        
-        return {
-          distance: route.distance / 1000,
-          duration: route.duration / 60,
-          coordinates: route.geometry.coordinates
-        };
+      const location = await goToCurrentLocation();
+      if (location && cameraRef.current) {
+        const coords = getCoordinates(location);
+        if (coords && coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+          cameraRef.current.setCamera({
+            centerCoordinate: coords,
+            zoomLevel: 16,
+            animationDuration: 1000,
+          });
+        }
       }
     } catch (error) {
-      console.error('Error calculating route with Mapbox API:', error);
-      
-      // Fallback to straight-line distance calculation
-      const R = 6371;
-      const dLat = (destination[1] - origin[1]) * Math.PI / 180;
-      const dLon = (destination[0] - origin[0]) * Math.PI / 180;
-      const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(origin[1] * Math.PI / 180) * Math.cos(destination[1] * Math.PI / 180) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const calculatedDistance = R * c;
-      const calculatedTime = (calculatedDistance / 5) * 60;
-      
-      setDistance(calculatedDistance.toFixed(1));
-      setTravelTime(Math.ceil(calculatedTime));
-      
-      return {
-        distance: calculatedDistance,
-        duration: calculatedTime,
-        coordinates: [origin, destination]
-      };
+      console.error('Error going to current location:', error);
+      Alert.alert('Error', 'Could not get current location');
     }
   };
 
-  // Function to get current location
-  const goToCurrentLocation = async () => {
-    try {
-      if (!locationPermission) {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert(
-            'Permission Denied',
-            'Allow location access to use this feature',
-            [{ text: 'OK' }]
-          );
-          return;
-        }
-        setLocationPermission(true);
-      }
+  // New handler to wrap map press and immediate navigation
+  const handleMapPressAndRoute = (event) => {
+    if (isSearchFocused || (searchResults && searchResults.length > 0)) {
+      handleClearSearch();
+    }
+    
+    if (handleImmediateMapNavigation) {
+      handleImmediateMapNavigation(event, userLocation);
+    }
+  };
 
-      let location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.BestForNavigation,
+  const handleRandomNavigation = async () => {
+    if (!userLocation) {
+      Alert.alert('Location Required', 'Please wait for your location to be detected before selecting a random route.');
+      return;
+    }
+    
+    try {
+      const destination = selectRandomDestination();
+      
+      if (destination) {
+        await startNavigation(userLocation, destination);
+        
+        const destCoords = getCoordinates(destination);
+        if (destCoords && destCoords.length === 2 && !isNaN(destCoords[0]) && !isNaN(destCoords[1]) && cameraRef.current) {
+          cameraRef.current.setCamera({
+            centerCoordinate: destCoords,
+            zoomLevel: 14,
+            animationDuration: 1000,
+          });
+        }
+      } else {
+        Alert.alert('Error', 'Failed to generate a random destination.');
+      }
+    } catch (error) {
+      console.error('Error in random navigation:', error);
+      Alert.alert('Error', 'Failed to start random navigation');
+    }
+  };
+
+  const handleSearchFocus = () => {
+    setIsSearchFocused(true);
+  };
+
+  const handleSearchBlur = () => {
+    if (!searchQuery) {
+      setIsSearchFocused(false);
+    }
+  };
+
+  const handleClearSearch = () => {
+    clearSearch();
+    Keyboard.dismiss();
+  };
+
+  // Helper function to extract coordinates with validation
+  const getCoordinates = (location) => {
+    if (!location) return null;
+    
+    try {
+      let longitude, latitude;
+      
+      if (Array.isArray(location)) {
+        if (location.length === 2) {
+          [longitude, latitude] = location;
+        } else {
+          return null;
+        }
+      } else if (location.coordinates && Array.isArray(location.coordinates)) {
+        if (location.coordinates.length === 2) {
+          [longitude, latitude] = location.coordinates;
+        } else {
+          return null;
+        }
+      } else if (location.longitude !== undefined && location.latitude !== undefined) {
+        longitude = location.longitude;
+        latitude = location.latitude;
+      } else {
+        return null;
+      }
+      
+      // Validate coordinates are numbers and within valid ranges
+      if (typeof longitude === 'number' && typeof latitude === 'number' &&
+          !isNaN(longitude) && !isNaN(latitude) &&
+          longitude >= -180 && longitude <= 180 &&
+          latitude >= -90 && latitude <= 90) {
+        return [longitude, latitude];
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error extracting coordinates:', error);
+      return null;
+    }
+  };
+
+  // Quick navigation handler
+  const handleQuickNavigation = (item) => {
+    console.log('Quick navigation started for:', item);
+    
+    if (!userLocation) {
+      Alert.alert('Location Required', 'Please wait for your location to be detected');
+      return;
+    }
+    
+    try {
+      const userCoords = getCoordinates(userLocation);
+      const resultCoords = getCoordinates(item);
+      
+      if (!userCoords || !resultCoords) {
+        Alert.alert('Error', 'Invalid coordinates for navigation');
+        return;
+      }
+      
+      handleSelectResult(item);
+      startNavigation(userCoords, {
+        ...item,
+        coordinates: resultCoords
       });
+    } catch (error) {
+      console.error('Error in quick navigation:', error);
+      Alert.alert('Error', 'Failed to start navigation');
+    }
+  };
 
       const { latitude, longitude } = location.coords;
       setUserLocation([longitude, latitude]);
 
       if (cameraRef.current && isMountedRef.current) {
         cameraRef.current.setCamera({
-          centerCoordinate: [longitude, latitude],
+          centerCoordinate: landmarkCoords,
           zoomLevel: 16,
           animationDuration: 1000,
         });
       }
     } catch (error) {
-      console.error('Error getting location:', error);
-      Alert.alert(
-        'Location Error',
-        'Unable to get your current location',
-        [{ text: 'OK' }]
-      );
+      console.error('Error in handleLandmarkPress:', error);
+      Alert.alert('Error', 'Failed to select landmark');
     }
   };
 
-  // Start navigation to a destination
-  const startNavigation = async (destination) => {
+  const handleCreateCustomDestination = () => {
     if (!userLocation) {
-      Alert.alert(
-        'Location Required',
-        'Please enable location services to start navigation',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Location Required', 'Please wait for your location to be detected');
       return;
     }
 
@@ -563,39 +643,29 @@ const Home = () => {
     setRecentSearches(updated);
   };
 
-  const clearSearch = () => {
-    setSearchQuery('');
-    setSearchResults([]);
-    setShowResults(false);
-    setIsSearchFocused(false);
-    Keyboard.dismiss();
+  // Handle location updates properly
+  const handleLocationUpdate = (location) => {
+    if (setUserLocation && location && location.coords) {
+      const newLocation = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        coords: location.coords
+      };
+      
+      // Validate location coordinates
+      if (!isNaN(newLocation.latitude) && !isNaN(newLocation.longitude) &&
+          newLocation.latitude >= -90 && newLocation.latitude <= 90 &&
+          newLocation.longitude >= -180 && newLocation.longitude <= 180) {
+        setUserLocation(newLocation);
+      }
+    }
   };
 
-  const renderResultItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.resultItem} 
-      onPress={() => handleSelectResult(item)}
-    >
-      <Ionicons 
-        name={iconMap[item.type] || iconMap.default} 
-        size={20} 
-        color="#5f5f5f" 
-        style={styles.resultIcon}
-      />
-      <View style={styles.resultTextContainer}>
-        <Text style={styles.resultTitle}>{item.name}</Text>
-        <Text style={styles.resultSubtitle}>Campus Location</Text>
-      </View>
-      <TouchableOpacity onPress={() => startNavigation(item)}>
-        <Ionicons name="navigate" size={24} color="#4285F4" />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
-
-  if (!ready) {
+  if (!ready || !fontsLoaded) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#4285F4" />
+        <Text style={{marginTop: 10}}>Loading map...</Text>
       </View>
     );
   }
@@ -615,8 +685,10 @@ const Home = () => {
         <MapboxGL.Camera 
           key={`camera-${mapStyle}`}
           ref={cameraRef}
-          zoomLevel={15} 
-          centerCoordinate={[77.4379, 12.8631]} 
+          defaultSettings={{
+            zoomLevel: DEFAULT_CAMERA_SETTINGS.zoomLevel, 
+            centerCoordinate: DEFAULT_CAMERA_SETTINGS.centerCoordinate
+          }}
         />
         
         {/* Add markers for all campus landmarks */}
@@ -691,28 +763,18 @@ const Home = () => {
         
         {/* Show user location if available */}
         {userLocation && (
-          <MapboxGL.PointAnnotation
-            id="userLocation"
-            coordinate={userLocation}
-          >
-            <View style={styles.userLocationMarker}>
-              <View style={styles.userLocationPulse} />
-              <Ionicons name="person" size={16} color="white" />
-            </View>
-          </MapboxGL.PointAnnotation>
+          <MapboxGL.UserLocation 
+            visible={true}
+            onUpdate={handleLocationUpdate}
+          />
         )}
         
-        {/* Show custom destination marker if set */}
-        {selectedDestination && selectedDestination.id === 'custom' && (
-          <MapboxGL.PointAnnotation
-            id="customDestination"
-            coordinate={selectedDestination.coordinates}
-          >
-            <View style={styles.customDestinationMarker}>
-              <Ionicons name="flag" size={16} color="white" />
-            </View>
-          </MapboxGL.PointAnnotation>
-        )}
+        <MapMarkers 
+          landmarks={landmarks}
+          userLocation={userLocation}
+          selectedDestination={selectedDestination}
+          onLandmarkPress={handleLandmarkPress}
+        />
         
         {/* Draw route line if navigating */}
         {isNavigating && routeInfo && routeInfo.coordinates && routeInfo.coordinates.length > 0 && (

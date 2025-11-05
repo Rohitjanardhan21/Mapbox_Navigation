@@ -1,0 +1,245 @@
+// styles/components.js
+import { StyleSheet, Platform, Dimensions } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
+
+export const styles = StyleSheet.create({
+  // FloatingButtons styles ONLY
+  floatingButtonsContainer: {
+    position: 'absolute',
+    bottom: 120,
+    right: 20,
+    gap: 15,
+    zIndex: 998,
+    alignItems: 'flex-end',
+  },
+  setDestinationButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#4285F4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  currentLocationButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  floatingButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+
+  // NavigationPanel styles
+  navigationPanel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 10,
+    zIndex: 997,
+  },
+  navigationHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  navigationHeaderHandle: {
+    width: 40,
+    height: 5,
+    backgroundColor: '#ddd',
+    borderRadius: 3,
+    marginBottom: 12,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    padding: 8,
+  },
+  destinationCard: {
+    marginBottom: 20,
+  },
+  destinationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  destinationIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#4285F4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  destinationTextContainer: {
+    flex: 1,
+  },
+  destinationName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  destinationSubtext: {
+    fontSize: 14,
+    color: '#666',
+  },
+  routeInfoCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+  },
+  routeMainInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  routeTimeText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  routeDistanceText: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '500',
+  },
+  routeDetails: {
+    gap: 8,
+  },
+  routeDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  routeDetailText: {
+    fontSize: 14,
+    color: '#5f5f5f',
+  },
+  navigationControls: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  startButton: {
+    flex: 1,
+    backgroundColor: '#4285F4',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  startButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  stopButton: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+  },
+  stopButtonText: {
+    color: '#5f5f5f',
+    fontWeight: '500',
+    fontSize: 16,
+  },
+
+  // Other component styles (MapMarkers, DestinationModal, etc.)
+  markerContainer: {
+    alignItems: 'center',
+  },
+  markerPin: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#4285F4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  markerText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  selectedMarker: {
+    backgroundColor: '#ff6b35',
+    transform: [{ scale: 1.2 }],
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    minHeight: 200,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    marginLeft: 15,
+    color: '#333',
+  },
+  closeModalButton: {
+    alignItems: 'center',
+    padding: 15,
+    marginTop: 10,
+  },
+  closeModalText: {
+    fontSize: 16,
+    color: '#666',
+  },
+});
