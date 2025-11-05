@@ -1,0 +1,3 @@
+@echo off
+echo Starting Pixel 9 Pro emulator...
+"C:\Users\rohit\AppData\Local\Android\Sdk\emulator\emulator.exe" -avd Pixel_9_Pro
