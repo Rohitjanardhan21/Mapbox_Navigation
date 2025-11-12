@@ -7,16 +7,27 @@ export const useSearch = () => {
   const [showResults, setShowResults] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
+  // Show all landmarks when search is focused
+  const showAllLocations = () => {
+    console.log('Showing all locations:', landmarks.length);
+    setSearchResults(landmarks);
+    setShowResults(true);
+  };
+
   const handleSearch = (query) => {
     setSearchQuery(query);
 
     if (query.length > 0) {
+      // Filter landmarks by name and description
       const filtered = landmarks.filter(landmark =>
-        landmark.name.toLowerCase().includes(query.toLowerCase())
+        landmark.name.toLowerCase().includes(query.toLowerCase()) ||
+        (landmark.description && landmark.description.toLowerCase().includes(query.toLowerCase())) ||
+        landmark.type.toLowerCase().includes(query.toLowerCase())
       );
       setSearchResults(filtered);
       setShowResults(true);
     } else {
+      // Show all landmarks when search is empty
       setSearchResults([]);
       setShowResults(false);
     }
@@ -44,6 +55,7 @@ export const useSearch = () => {
     handleSearch,
     clearSearch,
     handleSelectResult,
-    setIsSearchFocused
+    setIsSearchFocused,
+    showAllLocations
   };
 };

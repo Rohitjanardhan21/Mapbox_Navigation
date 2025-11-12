@@ -1,3 +1,0 @@
-@echo off
-echo Running app on Pixel 9 Pro...
-npx expo run:android --device Pixel_9_Pro

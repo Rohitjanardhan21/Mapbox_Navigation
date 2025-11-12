@@ -5,11 +5,11 @@ import { iconMap } from '../utils/constants';
 import { searchStyles } from '../styles/searchStyles'; // Changed import
 
 export const SearchResults = ({ 
-  searchResults, 
-  showResults, 
+  results, 
   onSelectResult,
-  onStartNavigation
+  onQuickNavigation
 }) => {
+  const searchResults = results;
   const renderResultItem = ({ item }) => (
     <TouchableOpacity 
       style={searchStyles.resultItem} 
@@ -36,8 +36,8 @@ export const SearchResults = ({
       <TouchableOpacity 
         onPress={() => {
           console.log('Navigate button pressed:', item);
-          if (onStartNavigation) {
-            onStartNavigation(item);
+          if (onQuickNavigation) {
+            onQuickNavigation(item);
           }
         }}
         style={searchStyles.navigateButton}
@@ -47,9 +47,11 @@ export const SearchResults = ({
     </TouchableOpacity>
   );
 
-  if (!showResults || !searchResults || searchResults.length === 0) {
+  if (!searchResults || searchResults.length === 0) {
     return null;
   }
+  
+  console.log('Rendering search results:', searchResults.length);
 
   return (
     <View style={searchStyles.resultsContainer}>
