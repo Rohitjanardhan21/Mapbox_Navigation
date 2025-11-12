@@ -295,25 +295,7 @@ const Home = () => {
           }}
         />
         
-        {landmarks.map(landmark => (
-          <MapboxGL.PointAnnotation
-            key={landmark.id}
-            id={landmark.id}
-            coordinate={landmark.coordinates}
-            onSelected={() => setSelectedMarker(landmark)}
-          >
-            <View style={[
-              styles.marker,
-              selectedDestination && selectedDestination.id === landmark.id && styles.destinationMarker
-            ]}>
-              <Ionicons
-                name={iconMap[landmark.type] || iconMap.default}
-                size={18}
-                color="white"
-              />
-            </View>
-          </MapboxGL.PointAnnotation>
-        ))}
+        {/* Landmarks removed - cleaner map view */}
         
         {userLocation && (
           <MapboxGL.UserLocation visible={true} />
