@@ -376,29 +376,12 @@ const Home = () => {
         }}
       />
 
-      {showResults && searchResults && searchResults.length > 0 ? (
+      {showResults && searchResults && searchResults.length > 0 && (
         <SearchResults
           results={searchResults}
           onSelectResult={handleSelectResult}
           onQuickNavigation={handleQuickNavigation}
         />
-      ) : isSearchFocused && (
-        <View style={{ 
-          position: 'absolute', 
-          top: 90, 
-          left: 16, 
-          right: 16, 
-          backgroundColor: 'white', 
-          padding: 20, 
-          borderRadius: 16,
-          elevation: 10,
-          zIndex: 999
-        }}>
-          <Text style={{ fontSize: 14, color: '#666' }}>
-            Debug: showResults={showResults ? 'true' : 'false'}, 
-            results={searchResults?.length || 0}
-          </Text>
-        </View>
       )}
 
       {isNavigating && (
