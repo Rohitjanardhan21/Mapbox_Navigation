@@ -1,72 +1,83 @@
-# 🗺️ Mapbox Navigation App
+# Navigation App
 
-A modern, futuristic React Native navigation app built with Expo and Mapbox GL.
+A modern React Native navigation app with real-time directions, voice guidance, and advanced UI features.
 
-## ✨ Features
+## Prerequisites
 
-- **Real-time Navigation** with turn-by-turn directions
-- **Futuristic UI** with glassmorphism effects and smooth animations
-- **Voice Guidance** for navigation instructions
-- **Search & Explore** nearby landmarks and locations
-- **Favorites** - Save your frequently visited places
-- **Multiple Map Styles** - Street, Satellite, and Terrain views
-- **Smart Floating Buttons** with animated controls
-- **Modern Bottom Navigation** with 5 accessible tabs
-- **Offline Support** - Works without internet (after initial setup)
-
-## 🚀 Tech Stack
-
-- React Native
-- Expo SDK 53
-- Mapbox GL
-- React Navigation
-- Expo Location
-- Expo Speech
-
-## 📱 Screenshots
-
-[Add screenshots here]
-
-## 🛠️ Installation
-
-### Prerequisites
 - Node.js (v16 or higher)
 - npm or yarn
 - Android Studio (for Android development)
 - Expo CLI
 
-### Setup
+## Installation
 
-1. Clone the repository
-
+1. Clone the repository:
 ```bash
 git clone https://github.com/Rohitjanardhan21/Mapbox_Navigation.git
 cd Mapbox_Navigation
 ```
 
-2. Install dependencies
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-3. Start the development server
+## Running the App
+
+### Development Mode
 ```bash
-npx expo start
+npm start
 ```
 
-4. Run on Android
+### Android
 ```bash
-npx expo run:android
+npm run android
 ```
 
-## 🏗️ Building for Production
+### iOS
+```bash
+npm run ios
+```
+
+### Web
+```bash
+npm run web
+```
+
+## Dependencies
+
+All dependencies are listed in `package.json` and `requirements.txt`. Key packages include:
+
+- **expo**: ~53.0.22
+- **react-native**: 0.79.5
+- **@rnmapbox/maps**: ^10.1.41 (Mapbox integration)
+- **expo-location**: ~18.1.6 (Location services)
+- **expo-speech**: ~13.1.7 (Voice guidance)
+- **expo-router**: ~5.1.5 (Navigation routing)
+
+## Features
+
+- Real-time navigation with turn-by-turn directions
+- Voice guidance
+- Campus location search
+- Modern glassmorphism UI
+- Multiple map styles (Street, Satellite, Outdoor)
+- Save and share routes
+- Traffic layer support
+
+## Configuration
+
+The app uses Mapbox for maps. The access token is configured in `app.json`.
+
+## Building for Production
 
 ### Android APK
 ```bash
-cd android
-.\gradlew assembleRelease
+npx expo run:android --variant release
 ```
 
-The APK will be generated at: `android/app/build/outputs/apk/release/app-release.apk`
+The APK will be generated in `android/app/build/outputs/apk/release/`
 
-## 📂 Project Struc
+## License
+
+MIT
