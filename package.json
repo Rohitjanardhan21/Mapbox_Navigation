@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
+    "@react-native-async-storage/async-storage": "^2.1.0",
     "@rnmapbox/maps": "^10.1.41",
     "expo": "~53.0.22",
     "expo-blur": "^15.0.7",

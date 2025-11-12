@@ -1,5 +1,11 @@
 import { useState, useRef, useCallback } from 'react';
 import { Alert, Animated, Easing } from 'react-native';
+import { 
+  fetchAlternativeRoutes, 
+  selectBestRoute, 
+  getTimeBasedPreferences,
+  compareRoutes 
+} from '../utils/aiRouteSelector';
 
 export const useNavigation = () => {
   const [selectedDestination, setSelectedDestination] = useState(null);
@@ -10,6 +16,8 @@ export const useNavigation = () => {
   const [showDestinationOptions, setShowDestinationOptions] = useState(false);
   const [tappedCoordinate, setTappedCoordinate] = useState(null);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+  const [alternativeRoutes, setAlternativeRoutes] = useState([]);
+  const [routeScore, setRouteScore] = useState(null);
 
   const slideAnim = useRef(new Animated.Value(-100)).current;
 
@@ -87,18 +95,57 @@ export const useNavigation = () => {
     };
   }, []);
 
-  // Memoized function for route calculation (uses Mapbox API)
-  const calculateRoute = useCallback(async (startCoords, endCoords) => {
+  // AI-powered route calculation with multiple alternatives
+  const calculateRoute = useCallback(async (startCoords, endCoords, useAI = true) => {
     try {
       if (!validateCoordinates(startCoords) || !validateCoordinates(endCoords)) {
         console.error('Invalid coordinates for route calculation');
         return calculateFallbackRoute(startCoords, endCoords);
       }
 
-      console.log('Calculating route from:', startCoords, 'to:', endCoords);
+      console.log('Calculating AI-optimized route from:', startCoords, 'to:', endCoords);
 
       const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiYmVyaWNrcyIsImEiOiJjbWVkMmxhdDIwNXdyMmxzNTA3ZnprMHk3In0.hE8cQigI9JFbb9YBHnOsHQ';
       
+      if (useAI) {
+        // Fetch multiple alternative routes
+        const routes = await fetchAlternativeRoutes(startCoords, endCoords, MAPBOX_ACCESS_TOKEN);
+        
+        if (routes && routes.length > 0) {
+          // Get time-based preferences
+          const preferences = getTimeBasedPreferences();
+          
+          // Use AI to select the best route
+          const bestRouteResult = selectBestRoute(routes, preferences);
+          
+          if (bestRouteResult) {
+            const route = bestRouteResult.route;
+            
+            // Store alternatives and score
+            setAlternativeRoutes(bestRouteResult.alternatives);
+            setRouteScore(bestRouteResult.score);
+            
+            console.log('AI selected best route with score:', bestRouteResult.score.totalScore.toFixed(2));
+            console.log('Score breakdown:', bestRouteResult.score.breakdown);
+            
+            // Show comparison if multiple routes available
+            if (routes.length > 1) {
+              const comparison = compareRoutes(routes[0], routes[1], routes);
+              console.log('Route comparison:', comparison);
+            }
+            
+            return {
+              coordinates: route.geometry.coordinates,
+              duration: Math.round(route.duration / 60),
+              distance: (route.distance / 1000).toFixed(1),
+              score: bestRouteResult.score,
+              hasAlternatives: bestRouteResult.alternatives.length > 0
+            };
+          }
+        }
+      }
+      
+      // Fallback to single route request
       const response = await fetch(
         `https://api.mapbox.com/directions/v5/mapbox/walking/${startCoords[0]},${startCoords[1]};${endCoords[0]},${endCoords[1]}?` +
         `access_token=${MAPBOX_ACCESS_TOKEN}&` +
@@ -115,8 +162,8 @@ export const useNavigation = () => {
         const route = data.routes[0];
         return {
           coordinates: route.geometry.coordinates,
-          duration: Math.round(route.duration / 60), // Duration in minutes
-          distance: (route.distance / 1000).toFixed(1) // Distance in km
+          duration: Math.round(route.duration / 60),
+          distance: (route.distance / 1000).toFixed(1)
         };
       }
       return null;
@@ -315,6 +362,8 @@ export const useNavigation = () => {
     tappedCoordinate,
     slideAnim,
     isCalculatingRoute,
+    alternativeRoutes,
+    routeScore,
     startNavigation,
     stopNavigation,
     handleMapPress,
