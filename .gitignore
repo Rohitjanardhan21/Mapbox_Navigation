@@ -57,7 +57,6 @@ android/build/
 android/.gradle/
 
 # Temporary files
-*.bat
 TRANSFER_INSTRUCTIONS.txt
 BUILD_INSTRUCTIONS.md
 build-*.bat

@@ -34,10 +34,23 @@ An intelligent AI-powered navigation system designed specifically for campus env
 
 ## 🚀 Quick Start
 
-### Installation
+### Automated Setup (Recommended)
+
+**Windows:**
+```bash
+setup.bat
+```
+
+**Mac/Linux:**
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+### Manual Installation
 ```bash
 # Install dependencies
-npm install
+npm install --legacy-peer-deps
 
 # Install AsyncStorage
 npx expo install @react-native-async-storage/async-storage
@@ -45,6 +58,9 @@ npx expo install @react-native-async-storage/async-storage
 # Start the app
 npx expo start
 ```
+
+### If You Encounter Issues
+See **[Troubleshooting Guide](./docs/TROUBLESHOOTING.md)** for solutions to common problems.
 
 ### Build APK
 ```bash
