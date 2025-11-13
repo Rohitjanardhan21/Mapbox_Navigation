@@ -58,10 +58,8 @@ android/.gradle/
 
 # Temporary files
 *.bat
-*.md
 TRANSFER_INSTRUCTIONS.txt
 BUILD_INSTRUCTIONS.md
 build-*.bat
 wireless-*.bat
 check-phone.bat
-app/debug.jsx
