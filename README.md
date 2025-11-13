@@ -1,83 +1,120 @@
-# Navigation App
+# Campus Navigation System 🎓🗺️
 
-A modern React Native navigation app with real-time directions, voice guidance, and advanced UI features.
+An intelligent AI-powered navigation system designed specifically for campus environments.
 
-## Prerequisites
+## ✨ Key Features
 
-- Node.js (v16 or higher)
-- npm or yarn
-- Android Studio (for Android development)
-- Expo CLI
+### 🤖 AI-Powered Route Selection
+- Analyzes multiple routes and selects the best one
+- Campus-specific factors: pedestrian traffic, path quality, accessibility
+- Time-aware routing (avoids crowds during class changes, prioritizes safety at night)
+- Transparent AI scoring and explanations
 
-## Installation
+### 📚 Campus Buildings Database
+- Comprehensive building information
+- Search and filter by type
+- Opening hours, facilities, accessibility info
+- 8 pre-configured buildings (customizable)
 
-1. Clone the repository:
+### 🚀 Quick Access Features
+- One-tap navigation to buildings
+- Saved routes and favorites
+- Recent search history
+- Category-based building browser
+
+### 📥 Offline Capability
+- Download campus maps for offline use
+- Navigate without internet connection
+- 4 campus regions available
+
+### 🚨 Emergency Panel
+- Quick dial emergency contacts
+- Navigate to emergency locations
+- Campus security, medical, fire, police
+
+## 🚀 Quick Start
+
+### Installation
 ```bash
-git clone https://github.com/Rohitjanardhan21/Mapbox_Navigation.git
-cd Mapbox_Navigation
-```
-
-2. Install dependencies:
-```bash
+# Install dependencies
 npm install
+
+# Install AsyncStorage
+npx expo install @react-native-async-storage/async-storage
+
+# Start the app
+npx expo start
 ```
 
-## Running the App
-
-### Development Mode
+### Build APK
 ```bash
-npm start
+# Generate Android project
+npx expo prebuild --platform android
+
+# Build release APK
+cd android
+.\gradlew assembleRelease
 ```
 
-### Android
-```bash
-npm run android
-```
+APK location: `android\app\build\outputs\apk\release\app-release.apk`
 
-### iOS
-```bash
-npm run ios
-```
+## 📖 Documentation
 
-### Web
-```bash
-npm run web
-```
+Comprehensive documentation is available in the [`docs/`](./docs) folder:
 
-## Dependencies
+- **[Quick Start Guide](./docs/QUICK_START_CAMPUS.md)** - Get started quickly
+- **[Complete Feature List](./docs/COMPLETE_FEATURE_LIST.md)** - All features overview
+- **[AI Route Selection](./docs/AI_ROUTE_SELECTION.md)** - How AI routing works
+- **[Campus AI Navigation](./docs/CAMPUS_AI_NAVIGATION.md)** - Campus-specific features
+- **[New Features](./docs/NEW_FEATURES.md)** - Recently added features
+- **[Usage Examples](./docs/USAGE_EXAMPLE.md)** - Code examples
 
-All dependencies are listed in `package.json` and `requirements.txt`. Key packages include:
+## 🎯 Perfect For
 
-- **expo**: ~53.0.22
-- **react-native**: 0.79.5
-- **@rnmapbox/maps**: ^10.1.41 (Mapbox integration)
-- **expo-location**: ~18.1.6 (Location services)
-- **expo-speech**: ~13.1.7 (Voice guidance)
-- **expo-router**: ~5.1.5 (Navigation routing)
+- **Students**: Never late to class, avoid crowds, safe night navigation
+- **Visitors**: Easy campus navigation with clear directions
+- **Campus Admin**: Better traffic distribution, improved safety
 
-## Features
+## 🛠️ Tech Stack
 
-- Real-time navigation with turn-by-turn directions
-- Voice guidance
-- Campus location search
-- Modern glassmorphism UI
-- Multiple map styles (Street, Satellite, Outdoor)
-- Save and share routes
-- Traffic layer support
+- React Native + Expo
+- Mapbox Maps & Directions API
+- Custom AI scoring algorithm
+- AsyncStorage for data persistence
 
-## Configuration
+## 📱 Features at a Glance
 
-The app uses Mapbox for maps. The access token is configured in `app.json`.
+✅ AI-powered multi-route selection  
+✅ Campus buildings database  
+✅ Saved routes & favorites  
+✅ Offline map downloads  
+✅ Emergency panel  
+✅ Recent searches  
+✅ Route comparison with AI scores  
+✅ Time-aware routing  
+✅ Accessibility features  
+✅ Campus-specific optimizations  
 
-## Building for Production
+## 🔧 Customization
 
-### Android APK
-```bash
-npx expo run:android --variant release
-```
+1. **Update Building Coordinates**: Edit `utils/campusBuildings.js`
+2. **Emergency Contacts**: Edit `components/EmergencyPanel.jsx`
+3. **Map Regions**: Edit `components/OfflineMapDownloader.jsx`
 
-The APK will be generated in `android/app/build/outputs/apk/release/`
+## 📊 AI Route Scoring
 
-## License
+Routes are scored based on 5 factors:
+- **Distance** (30%) - Walking distance
+- **Duration** (25%) - Time to destination
+- **Pedestrian Traffic** (20%) - Crowd levels
+- **Path Quality** (15%) - Paved, lit, covered paths
+- **Accessibility** (10%) - Ramps, elevators, smooth surfaces
 
-MIT
+## 🎓 Campus-Specific Intelligence
+
+- Detects class change times automatically
+- Avoids crowded paths during peak hours
+- Prioritizes well-lit routes at night
+- Considers accessibility needs
+- Adapts to campus schedule
+
