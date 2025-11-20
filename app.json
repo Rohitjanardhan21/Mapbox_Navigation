@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,  
+    "newArchEnabled": false,
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
@@ -46,6 +46,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withKotlinFix.js",
       [
         "expo-location",
         {
@@ -55,7 +56,7 @@
       [
         "@rnmapbox/maps",
         {
-          "RNMapboxMapsDownloadToken": "sk.eyJ1IjoiYmVyaWNrcyIsImEiOiJjbWV2ZGZ5dWcwYjVwMmtxeHRuOTE3dWxsIn0.d7nD5CM2rsNLYE3YjcnkKg"
+          "RNMapboxMapsDownloadToken": "sk.eyJ1IjoiYmVyaWNrcyIsImEiOiJjbWh1Y2s3MjYxcDVnMm1yMTd1YnJwNnp1In0.S2bV-k3Bq3YZrFGQ4NChfA"
         }
       ],
       "expo-font",
